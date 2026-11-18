@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Confere se o ambiente roda o que o bufferbloat.py original usa (Parte 2):
-CPULimitedHost, TCLink com max_queue_size, controlador padrao do Mininet, iperf (v2)
-e a leitura da fila com `tc -s qdisc` como no monitor.py. Nao e a solucao da Parte 2.
+TCLink com max_queue_size, controlador padrao do Mininet, iperf (v2) e a leitura da
+fila com `tc -s qdisc` como no monitor.py. Nao e a solucao da Parte 2.
+
+No Ubuntu 24.04 o CPULimitedHost do bufferbloat.py original falha ("cgroups not mounted
+on /sys/fs/cgroup": ele depende de cgroups v1). O enunciado manda trocar por Host, que e
+o que este teste usa.
 """
 import re
 import subprocess
@@ -10,7 +14,7 @@ import time
 
 from mininet.link import TCLink
 from mininet.net import Mininet
-from mininet.node import CPULimitedHost
+from mininet.node import Host
 from mininet.topo import Topo
 
 
@@ -22,7 +26,7 @@ class T(Topo):
         self.addLink(s, b, bw=2, delay="2ms", max_queue_size=50)
 
 
-net = Mininet(topo=T(), host=CPULimitedHost, link=TCLink)
+net = Mininet(topo=T(), host=Host, link=TCLink)
 net.start()
 erros = []
 try:
