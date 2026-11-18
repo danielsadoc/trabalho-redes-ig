@@ -20,6 +20,8 @@ sudo modprobe tcp_scalable           # para a Parte 5
 | `ig_metrics.py` | injustiça `U`, ineficiência `I`, `D_IS`, leitura e alinhamento dos CSVs. **Dois TODOs fazem parte do trabalho**: `detect_backoffs` (Parte 4) e `sync_estimate` (Parte 6) |
 | `plot_cwnd.py` | gráfico da cwnd por fluxo (e da fila, se houver `queue.csv`) |
 | `run_p4.sh` | varredura de exemplo da Parte 4, com repetições e retomada |
+| `simula_aimd.py` | verificação numérica da teoria (Seção 3 do enunciado): identidade pitagórica, contração por β², expoentes binomiais, interpolação por sincronização parcial; `--skip-interpolation` pula a parte mais lenta |
+| `simula_cubic.py` | expoente 4/3 do CUBIC sob perda periódica |
 
 ## Uso
 

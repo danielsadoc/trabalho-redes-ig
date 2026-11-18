@@ -14,11 +14,11 @@ perda e o efeito da sincronização de perdas sobre a justiça entre RTTs.
 | pasta | o que tem |
 |---|---|
 | [`enunciado/`](enunciado/) | enunciado em LaTeX (`main.tex`) e em PDF (`enunciado.pdf`) |
-| [`ig_starter/`](ig_starter/) | código inicial: topologia haltere, monitor de cwnd, métricas e gráficos — ver o [README](ig_starter/README.md) |
+| [`ig_starter/`](ig_starter/) | código inicial: topologia haltere, monitor de cwnd, métricas, gráficos e verificações numéricas da teoria — ver o [README](ig_starter/README.md) |
 
-O código da primeira parte (bufferbloat: `bufferbloat.py`, `run.sh`, `monitor.py`, …) e o
-manuscrito com os scripts `verify_aimd.py` e `verify_cubic.py` são distribuídos à turma
-pelo professor.
+O enunciado é autocontido: a teoria está na Seção 3 e as derivações no Apêndice C. O
+código da primeira parte (bufferbloat: `bufferbloat.py`, `run.sh`, `monitor.py`, …) é o
+do projeto de bufferbloat da disciplina, distribuído à turma pelo professor.
 
 ## Começo rápido
 

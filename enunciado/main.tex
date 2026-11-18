@@ -133,12 +133,10 @@ testada numa pilha TCP real.
 como se mede?
 \end{itemize}
 
-O ponto de partida teórico é o manuscrito \emph{The Information Geometry of AIMD}
-(A.~Bhaya, D.~S.~Menasché e H.~Mirandola), fornecido junto com este enunciado,
-com slides em português e dois scripts Python de verificação numérica. O manuscrito
-está em preparação: \textbf{não o redistribua fora da turma}. A Seção~\ref{sec:primer}
-resume tudo o que você precisa dele; não é preciso entender todas as provas para fazer
-o trabalho.
+A Seção~\ref{sec:primer} apresenta toda a teoria necessária, e o
+Apêndice~\ref{app:deriv} traz as derivações. O código de apoio, inclusive dois scripts
+de verificação numérica da teoria (\texttt{simula\_aimd.py} e \texttt{simula\_cubic.py}),
+está no repositório público \url{https://github.com/danielsadoc/trabalho-redes-ig}.
 
 \subsection*{Metas de aprendizado}
 \begin{itemize}
@@ -180,10 +178,14 @@ SIGCOMM 2004, \url{https://dl.acm.org/doi/10.1145/1030194.1015499}.
 2008; e a RFC~9438 (CUBIC).
 \end{itemize}
 
-\paragraph{Geometria da informação do AIMD.}
+\paragraph{Justiça, utilidade e geometria.}
 \begin{itemize}
-\item O manuscrito (\texttt{main.tex}) e os slides (\texttt{slides-pt.tex}). Leia
-primeiro os slides, depois as Seções 3, 6, 7 e 8 do manuscrito.
+\item F.~Kelly, A.~Maulloo e D.~Tan, \emph{Rate control for communication networks:
+shadow prices, proportional fairness and stability}, J.~Oper.~Res.~Soc., 1998.
+\item J.~Mo e J.~Walrand, \emph{Fair end-to-end window-based congestion control},
+IEEE/ACM Trans.~Networking, 2000 --- a justiça $\alpha$.
+\item D.~Bansal e H.~Balakrishnan, \emph{Binomial congestion control algorithms}, IEEE
+INFOCOM, 2001 --- a família binomial.
 \item Para quem quiser ir além: S.~Amari, \emph{Information Geometry and Its
 Applications}, Springer, 2016, Caps.~1--2.
 \end{itemize}
@@ -192,8 +194,8 @@ Applications}, Springer, 2016, Caps.~1--2.
 \section{A teoria em quatro páginas}
 \label{sec:primer}
 
-Esta seção é um resumo autocontido. Os resultados citados estão provados no manuscrito;
-aqui o objetivo é saber \emph{o que medir} e \emph{o que esperar}.
+Esta seção é autocontida: diz \emph{o que medir} e \emph{o que esperar}. As
+derivações estão no Apêndice~\ref{app:deriv}.
 
 \subsection{A família binomial e o expoente de justiça}
 
@@ -351,7 +353,8 @@ $n(\beta-\log\beta-1)$ --- é a sonda de banda, que \emph{deve} persistir.
 Modele cada evento de congestionamento assim: com probabilidade $s$ ele é
 \emph{global} (todos os $n$ fluxos reduzem a janela); com probabilidade $1-s$ ele é
 \emph{individual} (um único fluxo reduz, escolhido com probabilidade proporcional à sua
-taxa). O manuscrito mostra que o expoente de justiça efetivo do Reno é
+taxa). Uma conta de campo médio (Apêndice~\ref{app:deriv}) mostra que o expoente de
+justiça efetivo do Reno é
 \begin{equation}
 \alpha_{\rm ef}(s)\;=\;1+\gamma(s),\qquad
 \gamma(s)=\frac{1-s}{s\,n+1-s},
@@ -421,7 +424,9 @@ sudo modprobe tcp_scalable
 # nao reaproveitar ssthresh/cwnd de conexoes anteriores entre rodadas
 sudo sysctl -w net.ipv4.tcp_no_metrics_save=1
 \end{lstlisting}
-Rode também os scripts do manuscrito (\texttt{verify\_aimd.py} e \texttt{verify\_cubic.py}, com \texttt{python3}); eles só dependem de \texttt{numpy}.
+Rode também os scripts de verificação numérica do repositório
+(\texttt{python3 simula\_aimd.py} e \texttt{python3 simula\_cubic.py}, na pasta
+\texttt{ig\_starter}); eles só dependem de \texttt{numpy}.
 
 \paragraph{Código da segunda metade.} A partir da Parte 2 você também usa o pacote
 \texttt{ig\_starter} (\url{https://github.com/danielsadoc/trabalho-redes-ig}), descrito no Apêndice~\ref{app:codigo}:
@@ -506,7 +511,7 @@ Respostas curtas, com as contas.
 \begin{enumerate}[label=3.\arabic*]
 \item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela da Seção~\ref{sec:primer} as
 linhas de IIAD $(k,l)=(1,0)$, SQRT $(k,l)=(1/2,1/2)$ e do binomial $(k,l)=(1,1)$ que o
-\texttt{verify\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
+\texttt{simula\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
 “amigáveis ao TCP”? Qual é o mais justo no sentido de $\alpha$?
 \item \basico\ Para $n=2$ e $\mu=\ones$, mostre que $\mathcal U(x)=2\log\frac{(x_1+x_2)/2}{\sqrt{x_1x_2}}$
 e que $\mathcal U(\lambda x)=\mathcal U(x)$ para todo $\lambda>0$. Conclua que a MD
@@ -521,7 +526,7 @@ razão por ciclo é $\beta^2$ e não $\beta$.
 da Seção~\ref{sec:primer}. Escreva um teste (\texttt{test\_ig\_metrics.py}) que verifica a
 identidade \eqref{eq:pitagoras} em 1000 pontos aleatórios com erro $<10^{-10}$, para
 $\mu=\ones$ e para $\mu=(1,1/4,1/9)$, e que verifica $\mathcal U(\lambda x)=\mathcal U(x)$.
-\item \inter\ Rode \texttt{verify\_aimd.py}. Explique, com suas palavras, o que o item 3
+\item \inter\ Rode \texttt{simula\_aimd.py}. Explique, com suas palavras, o que o item 3
 da saída verifica e por que a razão por ciclo começa em $\approx0{,}33$ e converge para
 $0{,}25$.
 \end{enumerate}
@@ -638,7 +643,7 @@ que se comporta como um AIMD; fora dela, a previsão é $\hat\alpha=4/3$. Você 
 \emph{dois regimes}. Encontre experimentalmente o valor de $p$ (e de RTT) onde ocorre a
 transição e compare com a fórmula da RFC~9438.
 \item \inter\ Quantos eventos de perda cada ponto contém? Discuta o compromisso entre
-duração do experimento e precisão de $\hat\alpha$. (O \texttt{verify\_aimd.py} usa
+duração do experimento e precisão de $\hat\alpha$. (O \texttt{simula\_aimd.py} usa
 $2\times10^5$ RTTs por ponto; qual a duração equivalente no seu experimento?)
 \end{enumerate}
 
@@ -696,9 +701,10 @@ usado. Este é o gráfico que mais interessa para o artigo.
 \pontos{1,0 ponto}
 \label{sec:doisgargalos}
 
-O manuscrito mostra que a identificação “a redução define a geometria; $(k,l)$ define a
-utilidade $\alpha$-justa” e a função de Lyapunov $\Dis(x^\star\|x)$ valem em qualquer
-topologia, não só com um gargalo. Esta parte testa isso na rede da
+O equilíbrio $\alpha$-justo e a função de Lyapunov $\Dis(x^\star\|x)$ do modelo fluido
+(Apêndice~\ref{app:deriv}) valem em qualquer topologia, não só com um gargalo: o ótimo
+passa a maximizar $\sum_r U(x_r)$ sujeito a uma restrição de capacidade por enlace.
+Esta parte testa isso na rede da
 Figura~\ref{fig:parking}, com os atrasos de acesso ajustados para que os três fluxos
 tenham o mesmo RTT de propagação. Monte a topologia adaptando o \texttt{dumbbell.py}
 (classe da topologia e comandos \texttt{tc} dos dois gargalos).
@@ -716,19 +722,18 @@ tenham o mesmo RTT de propagação. Monte a topologia adaptando o \texttt{dumbbe
   \draw[ctraj,very thick,-{Stealth}] (-0.4,0.75) -- node[above,font=\scriptsize]{fluxo 2} (4.2,0.75);
   \draw[ctraj,very thick,-{Stealth}] (3.8,1.35) -- node[above,font=\scriptsize]{fluxo 3} (8.4,1.35);
 \end{tikzpicture}
-\caption{Rede “parking lot” com dois gargalos e três fluxos (exemplo de
-Uchida--Kurose usado no manuscrito).}
+\caption{Rede “parking lot” com dois gargalos e três fluxos.}
 \label{fig:parking}
 \end{figure}
 
 \begin{enumerate}[label=7.\arabic*]
 \item \inter\ Calcule a alocação ótima para $\alpha=1$ (justiça proporcional),
-$\alpha=2$ e $\alpha\to\infty$ (max-min). Para conferir: com $\alpha=2$ e o modelo de
-preços do manuscrito, $x^\star\approx(2{,}43;\ 7{,}57;\ 2{,}57)$\,Mb/s.
+$\alpha=2$ e $\alpha\to\infty$ (max-min). Para conferir: com $\alpha=2$,
+$x^\star\approx(2{,}43;\ 7{,}57;\ 2{,}57)$\,Mb/s.
 \item \avancado\ Meça a alocação com Reno. Qual $\alpha$ descreve melhor o resultado?
 Repita com RTTs desiguais (sem compensar o caminho mais longo do fluxo 1).
 \item \avancado\ Calcule $\Dis(x^\star\|x(t))$ ao longo do experimento. Ela é
-monótona? Lembre que o manuscrito prova a monotonicidade só para o modelo fluido sem
+monótona? Lembre que a monotonicidade só está garantida no modelo fluido sem
 atraso.
 \end{enumerate}
 
@@ -746,20 +751,22 @@ negativo bem feito (“a previsão falha, e eis por quê”) também é um resul
 de artigo: vários $n$, repetições suficientes, análise de sensibilidade de $\Delta$, e
 uma explicação para os desvios. Primeiro passo: 10 repetições de cada ponto da Parte 6.
 \item \textbf{A contração transversal do CUBIC.} O CUBIC tem estado bidimensional
-$(w,W_{\max})$ e o manuscrito deixa em aberto sua geometria (questão aberta 3). Meça
+$(w,W_{\max})$, e a geometria desse sistema bidimensional é um problema em aberto. Meça
 $\mathcal U_{m+1}/\mathcal U_m$ do CUBIC em função de $\beta$ e $C$ (parâmetros
 \texttt{beta} e \texttt{bic\_scale} do módulo \texttt{tcp\_cubic}) e proponha uma fórmula. Compare com uma simulação do mapa de ciclos
-usando \texttt{verify\_cubic.py} como base.
+usando \texttt{simula\_cubic.py} como base.
 \item \textbf{Atraso de realimentação.} Aumente o RTT (até 400\,ms) mantendo o BDP fixo
 e verifique se $\Dis(x^\star\|x(t))$ deixa de ser monótona. Existe um RTT a partir do
-qual a monotonicidade quebra? Isso dialoga com a questão aberta 1 do manuscrito.
-\item \textbf{Disciplinas de fila com $\gamma>1$.} O manuscrito pergunta se existem
-disciplinas de fila que realizam $\alpha>k+l+1$. Proponha uma (por exemplo, descarte com
+qual a monotonicidade quebra? A estabilidade com atraso é justamente o que a
+teoria da Seção~\ref{sec:primer} não cobre.
+\item \textbf{Disciplinas de fila com $\gamma>1$.} Em \eqref{eq:interp}, $\gamma\le1$.
+Existem disciplinas de fila que realizam $\gamma>1$, isto é, $\alpha>k+l+1$? Proponha uma (por exemplo, descarte com
 probabilidade que cresce mais que linearmente na taxa do fluxo), implemente-a num
 simulador simples em Python ou como qdisc, e meça $\alpha_{\rm ef}$.
 \item \textbf{Dente de serra com dois gargalos.} Na rede da Figura~\ref{fig:parking},
 procure empiricamente uma quantidade transversal que seja monótona de ciclo a ciclo
-(questão aberta 5 do manuscrito). Candidata natural: $\mathcal U$ com $\mu=x^\star$.
+(com um gargalo, $\mathcal U$ tem esse papel). Candidata natural: $\mathcal U$ com
+$\mu=x^\star$.
 \end{enumerate}
 
 % =====================================================================
@@ -833,9 +840,10 @@ sem explicação.
 \section{Coautoria e uso dos resultados}
 \label{sec:coautoria}
 
-Os experimentos deste trabalho podem ajudar a validar --- ou a refutar --- previsões de
-um artigo em preparação. Alunos cujas contribuições forem incorporadas ao artigo poderão
-ser \textbf{convidados como coautores}. Os critérios são os usuais em publicações
+Os experimentos deste trabalho podem ajudar a validar --- ou a refutar --- as previsões
+da Seção~\ref{sec:primer}, e resultados sólidos podem ser publicados em um artigo
+científico. Alunos cujas contribuições forem incorporadas a um artigo poderão ser
+\textbf{convidados como coautores}. Os critérios são os usuais em publicações
 científicas:
 \begin{enumerate}
 \item \textbf{contribuição substancial e original} que sustenta uma afirmação do artigo
@@ -916,6 +924,9 @@ leitura dos CSVs. Contém dois \texttt{TODO} que são parte do trabalho:
 \texttt{detect\_backoffs} (Parte 4) e \texttt{sync\_estimate} (Parte 6).\\
 \texttt{plot\_cwnd.py} & Gráfico de cwnd por fluxo (pergunta 4.1 e Parte 2).\\
 \texttt{run\_p4.sh} & Exemplo de varredura da Parte 4 com repetições.\\
+\texttt{simula\_aimd.py} & Verificação numérica da Seção~\ref{sec:primer}: identidade
+pitagórica, contração por $\beta^2$, expoentes binomiais e interpolação \eqref{eq:interp}.\\
+\texttt{simula\_cubic.py} & Expoente $4/3$ do CUBIC sob perda periódica.\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -928,5 +939,68 @@ python3 plot_cwnd.py dados/p4/reno-n2-B100/rep1 -o p4-cwnd-reno-n2-B100.png
 \end{lstlisting}
 Cuidado numérico: quando $\mathcal U<10^{-8}$, o cálculo de $\log\AM-\overline{\log z}$
 perde precisão por cancelamento; não interprete razões de ciclo nesse nível.
+
+\section{Derivações}
+\label{app:deriv}
+
+As contas abaixo são no modelo fluido, sem atraso de realimentação.
+
+\paragraph{Expoente $\alpha=k+l+1$.} Em um RTT a janela cresce $a\,w^{-k}$. Com perda
+independente por pacote, há em média $p\,w$ perdas por RTT, e cada uma retira $b\,w^{l}$.
+No equilíbrio, $a\,w^{-k}=p\,w\cdot b\,w^{l}$, ou seja, $p=(a/b)\,w^{-(k+l+1)}$. Com vários
+fluxos sujeitos ao mesmo sinal de perda $q$ (o “preço” do gargalo),
+$x_r=(a_r/(b\,q))^{1/\alpha}$. Essa é exatamente a condição de otimalidade de
+$\max\sum_r w_r\,x_r^{1-\alpha}/(1-\alpha)$ sujeito a $\sum_r x_r\le c$, com $w_r=a_r/b$:
+o equilíbrio é $\alpha$-justo. Com $a_r\propto1/T_r^2$, vem $x_r\propto T_r^{-2/\alpha}$.
+
+\paragraph{Decomposição pitagórica.} Com $z^\star_r=x^\star_r/\mu_r=c/\sum_s\mu_s$ (igual
+para todo $r$), $\hat\rho=\AM(z)/z^\star$. Então
+\[
+\Dis(x\|x^\star)=\sum_r\Big[\frac{z_r}{z^\star}-\log\frac{z_r}{z^\star}-1\Big]
+=n\hat\rho-n\log\GM(z)+n\log z^\star-n .
+\]
+Somando e subtraindo $n\log\AM(z)$ e usando $\log\hat\rho=\log\AM(z)-\log z^\star$,
+obtém-se $n\log\frac{\AM(z)}{\GM(z)}+n(\hat\rho-\log\hat\rho-1)$. Os dois termos são
+$\ge0$: o primeiro pela desigualdade das médias, o segundo porque
+$u-\log u-1\ge0$.
+
+\paragraph{MD não muda $\mathcal U$; AI diminui.} $\mathcal U$ depende só das razões
+$z_r/z_s$, que a MD $x\mapsto\beta x$ preserva. Com $\mu=\ones$, somar $t$ a todos os
+fluxos dá $\frac{d}{dt}\mathcal U(x+t\ones)=n\big[1/\AM(x)-\overline{1/x}\big]\le0$,
+pela desigualdade entre as médias aritmética e harmônica, com igualdade só em
+$x\parallel\ones$.
+
+\paragraph{Contração por $\beta^2$.} Com perdas sincronizadas e $\mu=\ones$, entre dois
+estados imediatamente anteriores a perdas a MD leva a soma de $c$ para $\beta c$ e o AI
+devolve $(1-\beta)c/n=(1-\beta)x^\star_r$ a cada fluxo. O mapa por ciclo é
+$x'=\beta x+(1-\beta)x^\star$: o desvio $x-x^\star$ encolhe por $\beta$ a cada ciclo. Perto
+da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.4), logo
+$\mathcal U_{m+1}/\mathcal U_m\to\beta^2$.
+
+\paragraph{Lyapunov.} No modelo fluido do AIMD ($k=0$, $l=1$), com um preço comum
+$q=q(X)$ não decrescente na vazão total $X=\sum_r x_r$, $\dot x_r=a_r-b\,q\,x_r^{2}$. No
+equilíbrio, $a_r=b\,q^\star x_r^{\star2}$. Com
+$V(x)=\Dis(x^\star\|x)=\sum_r[x^\star_r/x_r-\log(x^\star_r/x_r)-1]$,
+\[
+\dot V=\sum_r\frac{x_r-x^\star_r}{x_r^2}\,\dot x_r
+=-b\,q^\star\sum_r\frac{(x_r-x^\star_r)^2(x_r+x^\star_r)}{x_r^2}
+\;+\;b\,(q^\star-q)(X-X^\star)\;\le\;0 ,
+\]
+pois o segundo termo é $\le0$ quando $q$ cresce com $X$. Em uma rede, o preço do fluxo
+é a soma dos preços dos enlaces do caminho, e o segundo termo vira uma soma por enlace
+com o mesmo sinal.
+
+\paragraph{Sincronização parcial.} Se os eventos de congestionamento ocorrem com taxa
+$\Lambda$ e cada um é global com probabilidade $s$ ou atinge um único fluxo, escolhido
+com probabilidade $x_r/X$ ($X=\sum_s x_s$), o fluxo $r$ reduz a janela com intensidade
+$\nu_r=\Lambda\,[\,s+(1-s)\,x_r/X\,]$. O equilíbrio exige $a_r x_r^{-k}=b\,\nu_r\,x_r^{l}$.
+Tratando $X$ como fixo (campo médio), o expoente local é
+\[
+\frac{\partial\log a_r}{\partial\log x_r}=k+l+\frac{\partial\log\nu_r}{\partial\log x_r}
+=k+l+\frac{(1-s)\,x_r/X}{s+(1-s)\,x_r/X},
+\]
+que no ponto simétrico $x_r=X/n$ vale $k+l+\gamma(s)$, com
+$\gamma(s)=(1-s)/(sn+1-s)$. Para o Reno, $k+l=1$, o que dá \eqref{eq:interp}; e
+$\gamma=1/2$ exatamente em $s=1/(n+1)$.
 
 \end{document}
