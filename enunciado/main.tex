@@ -194,104 +194,45 @@ Applications}, Springer, 2016, Caps.~1--2.
 \end{itemize}
 
 % =====================================================================
-\section{A teoria em quatro páginas}
+\section{A ideia, com o mínimo de matemática}
 \label{sec:primer}
 
-Esta seção é autocontida: diz \emph{o que medir} e \emph{o que esperar}. As
-derivações estão no Apêndice~\ref{app:deriv}.
-
-\subsection{A família binomial e o expoente de justiça}
-
-Um protocolo da família binomial (Bansal--Balakrishnan) mantém uma janela $w$ e faz
-\begin{equation}
-\text{a cada RTT sem perda:}\quad w\leftarrow w+a\,w^{-k},
-\qquad
-\text{a cada perda:}\quad w\leftarrow w-b\,w^{l}.
-\label{eq:binomial}
-\end{equation}
-O TCP Reno é $(k,l)=(0,1)$ com $b=1/2$: soma 1 pacote por RTT e divide a janela por
-2 na perda. Escrevemos $\beta$ para a \textbf{fração retida} da janela na perda
-($w\leftarrow\beta w$): $\beta=0{,}5$ no Reno e $\beta=0{,}7$ no CUBIC do Linux.
-
-Se as perdas são independentes por pacote, com probabilidade $p$, o equilíbrio do
-modelo fluido satisfaz $p\propto w^{-\alpha}$, ou seja,
-\begin{equation}
-\bar w\;\propto\;p^{-1/\alpha},\qquad \alpha=k+l+1 .
-\label{eq:alpha}
-\end{equation}
-O número $\alpha$ é o \textbf{expoente de justiça}: o equilíbrio maximiza
-$\sum_r U(x_r)$ com $U'(x)\propto x^{-\alpha}$ (justiça $\alpha$ de Mo--Walrand).
-$\alpha=1$ é justiça proporcional, $\alpha=2$ é “atraso potencial mínimo”, e
-$\alpha\to\infty$ é max-min.
+Esta seção explica o que vamos medir e o que esperar. Cada fórmula vem com uma leitura
+em português, e o \texttt{ig\_metrics.py} já calcula tudo. A teoria geral e as
+demonstrações estão nos Apêndices~\ref{app:teoria} e~\ref{app:deriv}: leia-os se tiver
+curiosidade, mas eles não são necessários para fazer as Partes 2 a 5.
 
 \begin{center}
-\begin{tabular}{@{}lcccl@{}}
+\small
+\begin{tabular}{@{}cl@{\qquad}cl@{}}
 \toprule
-Protocolo & $k$ & $l$ & $\alpha$ & previsão $\bar w\propto p^{-1/\alpha}$\\
+Símbolo & Significado & Símbolo & Significado\\
 \midrule
-Reno (AIMD) & $0$ & $1$ & $2$ & $p^{-1/2}$ (lei de Mathis)\\
-Scalable TCP (MIMD)$^{*}$ & $-1$ & $1$ & $1$ & $p^{-1}$\\
-AIAD & $0$ & $0$ & $1$ & $p^{-1}$\\
-CUBIC (correspondência de escala) & $-2/3$ & $1$ & $4/3$ & $p^{-3/4}$\\
+$n$ & número de fluxos & $p$ & probabilidade de perda de um pacote\\
+$x_r$ & janela (ou taxa) do fluxo $r$ & $T_r$ & RTT do fluxo $r$\\
+$c$ & capacidade do gargalo & $s$ & fração de perdas sincronizadas\\
+$\beta$ & fração da janela que sobra na perda & $\alpha$ & expoente de justiça\\
 \bottomrule
 \end{tabular}
-
-\smallskip
-{\footnotesize $^{*}$No Linux, só com janela acima de 100 pacotes; abaixo disso o
-incremento é de 1 pacote por RTT (Parte 5).}
 \end{center}
 
-\paragraph{RTTs diferentes.} Com $a_r\propto1/T_r^2$ (o RTT entra duas vezes: na
-taxa de incremento e na conversão janela$\to$taxa), a taxa de equilíbrio do fluxo $r$ é
-\begin{equation}
-x_r\;\propto\;T_r^{-2/\alpha_{\rm ef}} .
-\label{eq:rttbias}
-\end{equation}
-Para o Reno com perdas \emph{dessincronizadas}, $\alpha_{\rm ef}=2$ e $x_r\propto1/T_r$
-(viés linear em RTT). Com perdas \emph{sincronizadas}, $\alpha_{\rm ef}=1$ e
-$x_r\propto1/T_r^2$ (viés quadrático). Veja a Seção~\ref{sec:sync}.
+\subsection{O AIMD num desenho}
 
-\subsection{AIMD são dois passos de tamanho fixo, em duas geometrias}
+Imagine dois fluxos dividindo um enlace de capacidade $c$. Cada ponto $(x_1,x_2)$ do
+plano é uma divisão possível da banda (Figura~\ref{fig:chiujain}, à esquerda). Dois
+lugares importam: a \emph{reta eficiente} $x_1+x_2=c$, onde o enlace está cheio, e a
+\emph{reta justa} $x_1=x_2$. O ponto ideal $x^\star$ fica no cruzamento das duas.
 
-Na métrica euclidiana, o aumento aditivo é um passo de tamanho fixo $a$. Na métrica
-invariante por escala $ds=dx/x$ (a única métrica separável invariante por dilatações,
-que coincide com a métrica de Fisher de uma família de escala), a redução
-multiplicativa $x\mapsto\beta x$ percorre sempre a mesma distância
-\[
-d(\beta x,x)=\int_{\beta x}^x\frac{du}{u}=|\log\beta|,
-\]
-\emph{independentemente de $x$}. A assimetria entre aumento e redução de Chiu--Jain é
-a assimetria entre translações e dilatações.
-
-\subsection{Justiça e eficiência como componentes ortogonais}
-
-Considere $n$ fluxos com taxas $x=(x_1,\dots,x_n)$ dividindo um gargalo de capacidade
-$c$, e seja $\mu$ a direção que o protocolo considera justa ($\mu=\ones$ quando todos
-têm o mesmo RTT). O ótimo é $x^\star=c\,\mu/\sum_r\mu_r$. Defina $z_r=x_r/\mu_r$,
-$\AM$ e $\GM$ as médias aritmética e geométrica, e a \textbf{divergência de
-Itakura--Saito}
-\begin{equation}
-\Dis(x\|y)=\sum_{r=1}^n\Big[\frac{x_r}{y_r}-\log\frac{x_r}{y_r}-1\Big]\;\ge0 .
-\end{equation}
-
-\begin{caixa}[title=Teorema (decomposição pitagórica)]{cfair}
-Com a \emph{utilização projetada} $\hat\rho=\AM(z)\sum_r\mu_r/c$,
-\begin{equation}
-\Dis(x\|x^\star)\;=\;
-\underbrace{n\log\frac{\AM(z)}{\GM(z)}}_{\textstyle\mathcal U(x)\ \text{(injustiça)}}
-\;+\;
-\underbrace{n\big(\hat\rho-\log\hat\rho-1\big)}_{\textstyle\mathcal I(x)\ \text{(ineficiência)}} .
-\label{eq:pitagoras}
-\end{equation}
-Os dois termos são $\ge0$ e se anulam juntos só em $x=x^\star$. $\mathcal U$ é
-invariante por escala: não muda se todos os fluxos forem multiplicados pelo mesmo
-fator.
-\end{caixa}
-
-Com $\mu=\ones$ a interpretação é imediata (Figura~\ref{fig:chiujain}): o ponto
-$\hat x=\AM(x)\,\ones$ é a projeção de $x$ na reta justa \emph{mantendo a vazão total};
-$\mathcal U$ mede o quanto $x$ está fora da reta justa, e $\mathcal I$ o quanto $\hat x$
-está longe de $x^\star$ ao longo dela.
+O TCP Reno faz AIMD. A cada RTT sem perda, cada fluxo soma 1 pacote à janela
+(\emph{aumento aditivo}, AI). A cada perda, a janela cai pela metade (\emph{redução
+multiplicativa}, MD). No desenho:
+\begin{itemize}
+\item no AI os dois fluxos somam o mesmo, e o ponto anda na diagonal: a diferença entre
+eles não muda, mas a proporção melhora, e o ponto se aproxima da reta justa;
+\item na MD os dois caem pela metade, e o ponto anda em direção à origem mantendo a
+proporção $x_1/x_2$: não fica mais justo nem mais injusto, só menos eficiente.
+\end{itemize}
+Repetindo os dois movimentos, o zigue-zague converge para $x^\star$.
 
 \begin{figure}[t]
 \centering
@@ -308,19 +249,15 @@ está longe de $x^\star$ ao longo dela.
     (5.219,4.781) -- (2.609,2.391) -- (5.109,4.891);
   \fill[cfair] (5,5) circle (3pt) node[above right,font=\scriptsize,black] {$x^\star$};
   \fill[ctraj] (8.5,1.5) circle (2.4pt) node[right,font=\scriptsize,black] {$x_0$};
-  % projecao de um ponto
-  \coordinate (P) at (6.75,3.25);
-  \coordinate (H) at (5,5);
   \node[font=\scriptsize,ceff] at (7.3,0.55) {MD: radial};
-  \node[font=\scriptsize,cfair] at (2.5,4.2) {AI: direção $\ones$};
-  % painel da direita: projecao
+  \node[font=\scriptsize,cfair] at (2.5,4.2) {AI: diagonal};
   \begin{scope}[xshift=14cm]
   \draw[->,gray] (0,0) -- (10.8,0) node[right,black,font=\small] {$x_1$};
   \draw[->,gray] (0,0) -- (0,10.8) node[above,black,font=\small] {$x_2$};
   \draw[ceff,very thick] (0.4,9.6) -- (9.6,0.4);
   \draw[cfair,very thick,dashed] (0,0) -- (10,10);
   \fill[ctraj] (6,1.5) circle (3pt) node[right,font=\scriptsize] {$x$};
-  \fill[cfair!70!black] (3.75,3.75) circle (3pt) node[above left,font=\scriptsize] {$\hat x=\AM(x)\ones$};
+  \fill[cfair!70!black] (3.75,3.75) circle (3pt) node[above left,font=\scriptsize] {$\hat x$};
   \fill[cfair] (5,5) circle (3pt) node[above right,font=\scriptsize] {$x^\star$};
   \draw[gray,densely dotted,thick] (6,1.5) -- (3.75,3.75)
      node[midway,below left,font=\scriptsize,black] {$\mathcal U$};
@@ -328,61 +265,146 @@ está longe de $x^\star$ ao longo dela.
      node[midway,above left,font=\scriptsize,black] {$\mathcal I$};
   \end{scope}
 \end{tikzpicture}
-\caption{Esquerda: trajetória do AIMD sincronizado para dois fluxos (diagrama de
-Chiu--Jain). A redução multiplicativa (MD) é radial: preserva as proporções e,
-portanto, \emph{não muda} $\mathcal U$. O aumento aditivo (AI) anda na direção $\ones$:
-reduz $\mathcal U$. Direita: a decomposição \eqref{eq:pitagoras}. A projeção $\hat x$
-tem a mesma vazão total que $x$; $\mathcal U$ é a parte “transversal” e $\mathcal I$ a
-parte “ao longo da reta justa”. Os comprimentos no desenho são ilustrativos: as
-distâncias verdadeiras são divergências, não distâncias euclidianas.}
+\caption{Esquerda: trajetória do AIMD para dois fluxos que perdem pacotes ao mesmo
+tempo (diagrama de Chiu--Jain). Direita: a distância de $x$ até o ideal $x^\star$ se
+divide em duas partes. $\hat x$ é o ponto da reta justa com a mesma vazão total que
+$x$; a injustiça $\mathcal U$ mede o caminho de $x$ até $\hat x$, e a ineficiência
+$\mathcal I$ o de $\hat x$ até $x^\star$. Os comprimentos são ilustrativos.}
 \label{fig:chiujain}
 \end{figure}
 
-\paragraph{O que acontece em cada ciclo.} Para o Reno com perdas sincronizadas, amostrando
-o estado logo antes de cada perda:
-\begin{enumerate}[label=(\roman*)]
-\item a MD $x\mapsto\beta x$ deixa $\mathcal U$ \emph{exatamente} igual e leva
-$\hat\rho\mapsto\beta\hat\rho$;
-\item a AI reduz $\mathcal U$ estritamente;
-\item de um ciclo para o outro, $\mathcal U_{m+1}/\mathcal U_m\to\beta^2$
-($=1/4$ no Reno);
-\item no regime permanente, $\mathcal U\to0$ e $\mathcal I$ oscila entre $0$ e
-$n(\beta-\log\beta-1)$ --- é a sonda de banda, que \emph{deve} persistir.
-\end{enumerate}
+\subsection{Duas notas: injustiça e ineficiência}
 
-\subsection{Sincronização de perdas}
-\label{sec:sync}
+Para medir o quão longe do ideal estamos, usamos duas quantidades. As duas são sempre
+$\ge0$ e só valem zero no ideal.
 
-Modele cada evento de congestionamento assim: com probabilidade $s$ ele é
-\emph{global} (todos os $n$ fluxos reduzem a janela); com probabilidade $1-s$ ele é
-\emph{individual} (um único fluxo reduz, escolhido com probabilidade proporcional à sua
-taxa). Uma conta de campo médio (Apêndice~\ref{app:deriv}) mostra que o expoente de
-justiça efetivo do Reno é
+\begin{caixa}[title=Para calcular (fluxos com o mesmo RTT)]{cfair}
+Com janelas $x_1,\dots,x_n$, média aritmética $\AM$ e média geométrica $\GM$:
+\begin{itemize}
+\item \textbf{injustiça} $\mathcal U=n\log\dfrac{\AM(x)}{\GM(x)}$: zero quando todos são
+iguais; não muda se todas as janelas forem multiplicadas pelo mesmo número;
+\item \textbf{ineficiência} $\mathcal I=n(\rho-\log\rho-1)$, com
+$\rho=(x_1+\dots+x_n)/c$: zero quando o enlace está exatamente cheio ($\rho=1$);
+\item \textbf{distância total} até o ideal $x^\star_r=c/n$:
+$\Dis(x\|x^\star)=\sum_r\big[x_r/x^\star_r-\log(x_r/x^\star_r)-1\big]$ (a divergência
+de Itakura--Saito).
+\end{itemize}
+E vale sempre
 \begin{equation}
-\alpha_{\rm ef}(s)\;=\;1+\gamma(s),\qquad
-\gamma(s)=\frac{1-s}{s\,n+1-s},
+\Dis(x\|x^\star)=\mathcal U+\mathcal I .
+\label{eq:pitagoras}
+\end{equation}
+\end{caixa}
+
+Como num triângulo retângulo, a distância total se divide em duas partes que não se
+misturam; por isso chamamos \eqref{eq:pitagoras} de \emph{decomposição pitagórica}.
+Um exemplo com $c=10$: em $x=(8,2)$, $\AM=5$ e $\GM=4$, logo
+$\mathcal U=2\log1{,}25\approx0{,}446$; o enlace está cheio, então $\mathcal I=0$. Uma
+perda que corta as duas janelas pela metade leva a $x=(4,1)$: a injustiça continua
+$0{,}446$, porque as proporções não mudaram, e a ineficiência sobe para
+$2(0{,}5-\log0{,}5-1)\approx0{,}386$.
+
+\subsection{O que esperar nos experimentos}
+
+Para o Reno, olhando o estado logo antes de cada perda:
+\begin{enumerate}[label=(\roman*)]
+\item numa perda que atinge todos os fluxos ao mesmo tempo, $\mathcal U$ não muda;
+\item entre perdas, o aumento aditivo diminui $\mathcal U$;
+\item de um ciclo para o outro, $\mathcal U$ cai por um fator $\beta^2$, em que $\beta$ é
+a fração da janela que sobra na perda: no Reno $\beta=1/2$, e $\mathcal U$ cai para um
+quarto a cada ciclo (no CUBIC do Linux, $\beta=0{,}7$);
+\item no regime permanente $\mathcal U\approx0$, e $\mathcal I$ oscila entre $0$ e
+$n(\beta-\log\beta-1)$: é o TCP sondando a banda disponível.
+\end{enumerate}
+Por que $\beta^2$ e não $\beta$? Porque $\mathcal U$ se comporta como o quadrado de uma
+distância (Exercício 3.4).
+
+\subsection{Janela e perda: o expoente \texorpdfstring{$\alpha$}{alfa}}
+
+Se cada pacote se perde com probabilidade $p$, a janela média diminui quando $p$ cresce,
+como uma potência:
+\begin{equation}
+\bar w\;\propto\;p^{-1/\alpha}.
+\label{eq:alpha}
+\end{equation}
+Num gráfico log-log, isso é uma reta de inclinação $-1/\alpha$; a Parte 5 mede essa
+inclinação. O mesmo $\alpha$ diz como o protocolo divide a banda entre fluxos
+diferentes: $\alpha=1$ é a justiça proporcional e $\alpha\to\infty$ é a justiça max-min
+(Apêndice~\ref{app:teoria}).
+
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Protocolo & $\alpha$ & inclinação de $\log\bar w$ contra $\log p$\\
+\midrule
+Reno & $2$ & $-1/2$ (lei de Mathis, $\bar w\approx1{,}22/\sqrt p$)\\
+CUBIC & $4/3$ & $-3/4$\\
+Scalable TCP$^{*}$ & $1$ & $-1$\\
+\bottomrule
+\end{tabular}
+
+\smallskip
+{\footnotesize $^{*}$No Linux, só com janela acima de 100 pacotes; abaixo disso o
+incremento é de 1 pacote por RTT (Parte 5).}
+\end{center}
+
+\subsection{RTTs diferentes e sincronização das perdas}
+
+Um fluxo com RTT maior recebe menos banda. Quanto menos depende de as perdas atingirem
+os fluxos juntas ou separadas:
+\begin{equation}
+x_r\;\propto\;T_r^{-2/\alpha_{\rm ef}} .
+\label{eq:rttbias}
+\end{equation}
+Se cada perda atinge um fluxo só (perdas \emph{dessincronizadas}), $\alpha_{\rm ef}=2$ e
+a vazão é proporcional a $1/T_r$: com o dobro do RTT, metade da banda. Se cada perda
+atinge todos (perdas \emph{sincronizadas}), $\alpha_{\rm ef}=1$ e a vazão é proporcional a
+$1/T_r^2$: com o dobro do RTT, um quarto da banda. No meio do caminho, se uma fração $s$
+das perdas atinge todos os fluxos e o resto atinge um só,
+\begin{equation}
+\alpha_{\rm ef}(s)\;=\;1+\frac{1-s}{s\,n+1-s}
 \label{eq:interp}
 \end{equation}
-que vai de $\alpha=2$ ($s=0$, dessincronizado) a $\alpha=1$ ($s=1$, sincronizado). O
-ponto médio ($\gamma=1/2$) está em $s=1/(n+1)\approx1/n$, e não em $s=1/2$: com muitos
-fluxos, \emph{uma pequena fração de eventos globais já domina}.
+(Figura~\ref{fig:alphas}). Com muitos fluxos, basta uma pequena fração de perdas
+sincronizadas para o resultado ficar perto do caso sincronizado: o meio do caminho fica
+em $s\approx1/n$, e não em $s=1/2$.
 
-\paragraph{Como estimar $s$ a partir de um traço.} Agrupe as reduções de janela de todos
-os fluxos em \emph{eventos} (reduções que acontecem dentro de uma janela de tempo
-$\Delta$, da ordem de um RTT). Se $\bar m$ é o número médio de fluxos atingidos por
-evento, o modelo dá $\bar m=s\,n+(1-s)$, logo
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=8cm,height=4.6cm,xmin=0,xmax=1,ymin=1,ymax=2,domain=0:1,samples=120,
+  xlabel={$s$ (fração de perdas que atingem todos os fluxos)},ylabel={$\alpha_{\rm ef}$},
+  legend pos=north east,legend style={font=\scriptsize},tick label style={font=\scriptsize},
+  label style={font=\small}]
+\addplot[cfair,very thick]{1+(1-x)/(3*x+1-x)};
+\addlegendentry{$n=3$}
+\addplot[ceff,very thick,dashed]{1+(1-x)/(10*x+1-x)};
+\addlegendentry{$n=10$}
+\end{axis}
+\end{tikzpicture}
+\caption{O expoente efetivo \eqref{eq:interp} vai de $2$ (perdas dessincronizadas, vazão
+$\propto1/T$) a $1$ (sincronizadas, vazão $\propto1/T^2$).}
+\label{fig:alphas}
+\end{figure}
+
+\paragraph{Como estimar $s$.} Junte as reduções de janela de todos os fluxos em
+\emph{eventos}: reduções que acontecem com menos de $\Delta$ segundos de diferença, com
+$\Delta$ da ordem de um RTT. Seja $\bar m$ o número médio de fluxos atingidos por evento.
+Então
 \begin{equation}
 \hat s=\frac{\bar m-1}{n-1}.
 \label{eq:shat}
 \end{equation}
+Por exemplo, com $n=3$ e quatro eventos que atingem 1, 3, 1 e 2 fluxos, $\bar m=1{,}75$
+e $\hat s=0{,}375$.
 
 \subsection{O que a teoria \emph{não} cobre}
-Tudo acima é para o modelo fluido \emph{sem atraso de realimentação}, com perdas
-idealizadas. Ficam de fora: (a) estabilidade com atraso; (b) a dinâmica completa do
-CUBIC, que tem um estado extra $W_{\max}$; (c) o dente de serra em redes com mais de um
-gargalo; (d) detalhes do Linux como \emph{slow start},
-HyStart, PRR, SACK, pacing e TSO. Medir o quanto cada um desses itens desvia das
-previsões é exatamente o tipo de resultado que interessa a um artigo.
+As previsões acima vêm de um modelo idealizado, sem atraso de realimentação. Ficam de
+fora: (a) estabilidade com atraso; (b) a dinâmica completa do CUBIC, que tem um estado
+extra $W_{\max}$; (c) o dente de serra em redes com mais de um gargalo; (d) detalhes do
+Linux como \emph{slow start}, HyStart, PRR, SACK, pacing e TSO. Medir o quanto cada um
+desses itens desvia das previsões é exatamente o tipo de resultado que interessa a um
+artigo.
 
 % =====================================================================
 \section{Parte 1: Configuração \texorpdfstring{\basico}{}}
@@ -522,22 +544,24 @@ Estes exercícios garantem que vocês sabem calcular as quantidades que serão m
 Respostas curtas, com as contas.
 
 \begin{enumerate}[label=3.\arabic*]
-\item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela da Seção~\ref{sec:primer} as
+\item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela do Apêndice~\ref{app:teoria} as
 linhas de IIAD $(k,l)=(1,0)$, SQRT $(k,l)=(1/2,1/2)$ e do binomial $(k,l)=(1,1)$ que o
 \texttt{simula\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
 “amigáveis ao TCP”? Qual é o mais justo no sentido de $\alpha$?
-\item \basico\ Para $n=2$ e $\mu=\ones$, mostre que $\mathcal U(x)=2\log\frac{(x_1+x_2)/2}{\sqrt{x_1x_2}}$
-e que $\mathcal U(\lambda x)=\mathcal U(x)$ para todo $\lambda>0$. Conclua que a MD
-sincronizada não muda $\mathcal U$.
+\item \basico\ Confira os números do exemplo da Seção~\ref{sec:primer} ($x=(8,2)$ e
+$x=(4,1)$, com $c=10$), à mão e com o \texttt{ig\_metrics.py}. Depois mostre que
+$\mathcal U(\lambda x)=\mathcal U(x)$ para todo $\lambda>0$ e conclua que uma perda que
+atinge todos os fluxos não muda $\mathcal U$.
 \item \basico\ Calcule a amplitude $n(\beta-\log\beta-1)$ da oscilação de $\mathcal I$
 no regime permanente para Reno e CUBIC com $n=2$ e $n=3$.
-\item \inter\ Para $n=2$, $\mu=\ones$ e $x=(1+u,1-u)$ com $u$ pequeno, mostre que
-$\mathcal U\approx u^2$. Use isso e o mapa $u\mapsto\beta u$ para explicar por que a
-razão por ciclo é $\beta^2$ e não $\beta$.
+\item \inter\ Para $n=2$ e $x=(1+u,1-u)$, calcule $\mathcal U$ para $u=0{,}2$, $0{,}1$ e
+$0{,}05$ e compare com $u^2$. Se a cada ciclo o desvio $u$ encolhe por um fator $\beta$,
+por quanto encolhe $\mathcal U$? Isso explica por que a razão por ciclo é $\beta^2$ e
+não $\beta$.
 \item \inter\ Leia as funções \texttt{unfairness}, \texttt{inefficiency} e
 \texttt{itakura\_saito} de \texttt{ig\_metrics.py} e confira que implementam as fórmulas
-da Seção~\ref{sec:primer}. Escreva um teste (\texttt{test\_ig\_metrics.py}) que verifica a
-identidade \eqref{eq:pitagoras} em 1000 pontos aleatórios com erro $<10^{-10}$, para
+do Apêndice~\ref{app:teoria}. Escreva um teste (\texttt{test\_ig\_metrics.py}) que verifica a
+identidade \eqref{eq:pitagorasA} em 1000 pontos aleatórios com erro $<10^{-10}$, para
 $\mu=\ones$ e para $\mu=(1,1/4,1/9)$, e que verifica $\mathcal U(\lambda x)=\mathcal U(x)$.
 \item \inter\ Rode \texttt{simula\_aimd.py}. Explique, com suas palavras, o que o item 3
 da saída verifica e por que a razão por ciclo começa em $\approx0{,}33$ e converge para
@@ -880,6 +904,207 @@ deve ser capaz de explicar cada linha na apresentação.
 
 % =====================================================================
 \appendix
+\section{A teoria em detalhe}
+\label{app:teoria}
+
+Este apêndice apresenta a teoria da Seção~\ref{sec:primer} com mais generalidade (RTTs
+diferentes, pesos $\mu$, família binomial). As derivações estão no Apêndice~\ref{app:deriv}.
+
+\subsection{A família binomial e o expoente de justiça}
+
+Um protocolo da família binomial (Bansal--Balakrishnan) mantém uma janela $w$ e faz
+\begin{equation}
+\text{a cada RTT sem perda:}\quad w\leftarrow w+a\,w^{-k},
+\qquad
+\text{a cada perda:}\quad w\leftarrow w-b\,w^{l}.
+\label{eq:binomialA}
+\end{equation}
+O TCP Reno é $(k,l)=(0,1)$ com $b=1/2$: soma 1 pacote por RTT e divide a janela por
+2 na perda. Escrevemos $\beta$ para a \textbf{fração retida} da janela na perda
+($w\leftarrow\beta w$): $\beta=0{,}5$ no Reno e $\beta=0{,}7$ no CUBIC do Linux.
+
+Se as perdas são independentes por pacote, com probabilidade $p$, o equilíbrio do
+modelo fluido satisfaz $p\propto w^{-\alpha}$, ou seja,
+\begin{equation}
+\bar w\;\propto\;p^{-1/\alpha},\qquad \alpha=k+l+1 .
+\label{eq:alphaA}
+\end{equation}
+O número $\alpha$ é o \textbf{expoente de justiça}: o equilíbrio maximiza
+$\sum_r U(x_r)$ com $U'(x)\propto x^{-\alpha}$ (justiça $\alpha$ de Mo--Walrand).
+$\alpha=1$ é justiça proporcional, $\alpha=2$ é “atraso potencial mínimo”, e
+$\alpha\to\infty$ é max-min.
+
+\begin{center}
+\begin{tabular}{@{}lcccl@{}}
+\toprule
+Protocolo & $k$ & $l$ & $\alpha$ & previsão $\bar w\propto p^{-1/\alpha}$\\
+\midrule
+Reno (AIMD) & $0$ & $1$ & $2$ & $p^{-1/2}$ (lei de Mathis)\\
+Scalable TCP (MIMD)$^{*}$ & $-1$ & $1$ & $1$ & $p^{-1}$\\
+AIAD & $0$ & $0$ & $1$ & $p^{-1}$\\
+CUBIC (correspondência de escala) & $-2/3$ & $1$ & $4/3$ & $p^{-3/4}$\\
+\bottomrule
+\end{tabular}
+
+\smallskip
+{\footnotesize $^{*}$No Linux, só com janela acima de 100 pacotes; abaixo disso o
+incremento é de 1 pacote por RTT (Parte 5).}
+\end{center}
+
+\paragraph{RTTs diferentes.} Com $a_r\propto1/T_r^2$ (o RTT entra duas vezes: na
+taxa de incremento e na conversão janela$\to$taxa), a taxa de equilíbrio do fluxo $r$ é
+\begin{equation}
+x_r\;\propto\;T_r^{-2/\alpha_{\rm ef}} .
+\label{eq:rttbiasA}
+\end{equation}
+Para o Reno com perdas \emph{dessincronizadas}, $\alpha_{\rm ef}=2$ e $x_r\propto1/T_r$
+(viés linear em RTT). Com perdas \emph{sincronizadas}, $\alpha_{\rm ef}=1$ e
+$x_r\propto1/T_r^2$ (viés quadrático). Veja a Seção~\ref{app:sync}.
+
+\subsection{AIMD são dois passos de tamanho fixo, em duas geometrias}
+
+Na métrica euclidiana, o aumento aditivo é um passo de tamanho fixo $a$. Na métrica
+invariante por escala $ds=dx/x$ (a única métrica separável invariante por dilatações,
+que coincide com a métrica de Fisher de uma família de escala), a redução
+multiplicativa $x\mapsto\beta x$ percorre sempre a mesma distância
+\[
+d(\beta x,x)=\int_{\beta x}^x\frac{du}{u}=|\log\beta|,
+\]
+\emph{independentemente de $x$}. A assimetria entre aumento e redução de Chiu--Jain é
+a assimetria entre translações e dilatações.
+
+\subsection{Justiça e eficiência como componentes ortogonais}
+
+Considere $n$ fluxos com taxas $x=(x_1,\dots,x_n)$ dividindo um gargalo de capacidade
+$c$, e seja $\mu$ a direção que o protocolo considera justa ($\mu=\ones$ quando todos
+têm o mesmo RTT). O ótimo é $x^\star=c\,\mu/\sum_r\mu_r$. Defina $z_r=x_r/\mu_r$,
+$\AM$ e $\GM$ as médias aritmética e geométrica, e a \textbf{divergência de
+Itakura--Saito}
+\begin{equation}
+\Dis(x\|y)=\sum_{r=1}^n\Big[\frac{x_r}{y_r}-\log\frac{x_r}{y_r}-1\Big]\;\ge0 .
+\end{equation}
+
+\begin{caixa}[title=Teorema (decomposição pitagórica)]{cfair}
+Com a \emph{utilização projetada} $\hat\rho=\AM(z)\sum_r\mu_r/c$,
+\begin{equation}
+\Dis(x\|x^\star)\;=\;
+\underbrace{n\log\frac{\AM(z)}{\GM(z)}}_{\textstyle\mathcal U(x)\ \text{(injustiça)}}
+\;+\;
+\underbrace{n\big(\hat\rho-\log\hat\rho-1\big)}_{\textstyle\mathcal I(x)\ \text{(ineficiência)}} .
+\label{eq:pitagorasA}
+\end{equation}
+Os dois termos são $\ge0$ e se anulam juntos só em $x=x^\star$. $\mathcal U$ é
+invariante por escala: não muda se todos os fluxos forem multiplicados pelo mesmo
+fator.
+\end{caixa}
+
+Com $\mu=\ones$ a interpretação é imediata (Figura~\ref{fig:chiujain}): o ponto
+$\hat x=\AM(x)\,\ones$ é a projeção de $x$ na reta justa \emph{mantendo a vazão total};
+$\mathcal U$ mede o quanto $x$ está fora da reta justa, e $\mathcal I$ o quanto $\hat x$
+está longe de $x^\star$ ao longo dela.
+
+
+\paragraph{O que acontece em cada ciclo.} Para o Reno com perdas sincronizadas, amostrando
+o estado logo antes de cada perda:
+\begin{enumerate}[label=(\roman*)]
+\item a MD $x\mapsto\beta x$ deixa $\mathcal U$ \emph{exatamente} igual e leva
+$\hat\rho\mapsto\beta\hat\rho$;
+\item a AI reduz $\mathcal U$ estritamente;
+\item de um ciclo para o outro, $\mathcal U_{m+1}/\mathcal U_m\to\beta^2$
+($=1/4$ no Reno);
+\item no regime permanente, $\mathcal U\to0$ e $\mathcal I$ oscila entre $0$ e
+$n(\beta-\log\beta-1)$ --- é a sonda de banda, que \emph{deve} persistir.
+\end{enumerate}
+
+\subsection{Sincronização de perdas}
+\label{app:sync}
+
+Modele cada evento de congestionamento assim: com probabilidade $s$ ele é
+\emph{global} (todos os $n$ fluxos reduzem a janela); com probabilidade $1-s$ ele é
+\emph{individual} (um único fluxo reduz, escolhido com probabilidade proporcional à sua
+taxa). Uma conta de campo médio (Apêndice~\ref{app:deriv}) mostra que o expoente de
+justiça efetivo do Reno é
+\begin{equation}
+\alpha_{\rm ef}(s)\;=\;1+\gamma(s),\qquad
+\gamma(s)=\frac{1-s}{s\,n+1-s},
+\label{eq:interpA}
+\end{equation}
+que vai de $\alpha=2$ ($s=0$, dessincronizado) a $\alpha=1$ ($s=1$, sincronizado). O
+ponto médio ($\gamma=1/2$) está em $s=1/(n+1)\approx1/n$, e não em $s=1/2$: com muitos
+fluxos, \emph{uma pequena fração de eventos globais já domina}.
+
+\paragraph{Como estimar $s$ a partir de um traço.} Agrupe as reduções de janela de todos
+os fluxos em \emph{eventos} (reduções que acontecem dentro de uma janela de tempo
+$\Delta$, da ordem de um RTT). Se $\bar m$ é o número médio de fluxos atingidos por
+evento, o modelo dá $\bar m=s\,n+(1-s)$, logo
+\begin{equation}
+\hat s=\frac{\bar m-1}{n-1}.
+\label{eq:shatA}
+\end{equation}
+
+\section{Derivações}
+\label{app:deriv}
+
+As contas abaixo são no modelo fluido, sem atraso de realimentação.
+
+\paragraph{Expoente $\alpha=k+l+1$.} Em um RTT a janela cresce $a\,w^{-k}$. Com perda
+independente por pacote, há em média $p\,w$ perdas por RTT, e cada uma retira $b\,w^{l}$.
+No equilíbrio, $a\,w^{-k}=p\,w\cdot b\,w^{l}$, ou seja, $p=(a/b)\,w^{-(k+l+1)}$. Com vários
+fluxos sujeitos ao mesmo sinal de perda $q$ (o “preço” do gargalo),
+$x_r=(a_r/(b\,q))^{1/\alpha}$. Essa é exatamente a condição de otimalidade de
+$\max\sum_r w_r\,x_r^{1-\alpha}/(1-\alpha)$ sujeito a $\sum_r x_r\le c$, com $w_r=a_r/b$:
+o equilíbrio é $\alpha$-justo. Com $a_r\propto1/T_r^2$, vem $x_r\propto T_r^{-2/\alpha}$.
+
+\paragraph{Decomposição pitagórica.} Com $z^\star_r=x^\star_r/\mu_r=c/\sum_s\mu_s$ (igual
+para todo $r$), $\hat\rho=\AM(z)/z^\star$. Então
+\[
+\Dis(x\|x^\star)=\sum_r\Big[\frac{z_r}{z^\star}-\log\frac{z_r}{z^\star}-1\Big]
+=n\hat\rho-n\log\GM(z)+n\log z^\star-n .
+\]
+Somando e subtraindo $n\log\AM(z)$ e usando $\log\hat\rho=\log\AM(z)-\log z^\star$,
+obtém-se $n\log\frac{\AM(z)}{\GM(z)}+n(\hat\rho-\log\hat\rho-1)$. Os dois termos são
+$\ge0$: o primeiro pela desigualdade das médias, o segundo porque
+$u-\log u-1\ge0$.
+
+\paragraph{MD não muda $\mathcal U$; AI diminui.} $\mathcal U$ depende só das razões
+$z_r/z_s$, que a MD $x\mapsto\beta x$ preserva. Com $\mu=\ones$, somar $t$ a todos os
+fluxos dá $\frac{d}{dt}\mathcal U(x+t\ones)=n\big[1/\AM(x)-\overline{1/x}\big]\le0$,
+pela desigualdade entre as médias aritmética e harmônica, com igualdade só em
+$x\parallel\ones$.
+
+\paragraph{Contração por $\beta^2$.} Com perdas sincronizadas e $\mu=\ones$, entre dois
+estados imediatamente anteriores a perdas a MD leva a soma de $c$ para $\beta c$ e o AI
+devolve $(1-\beta)c/n=(1-\beta)x^\star_r$ a cada fluxo. O mapa por ciclo é
+$x'=\beta x+(1-\beta)x^\star$: o desvio $x-x^\star$ encolhe por $\beta$ a cada ciclo. Perto
+da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.4), logo
+$\mathcal U_{m+1}/\mathcal U_m\to\beta^2$.
+
+\paragraph{Lyapunov.} No modelo fluido do AIMD ($k=0$, $l=1$), com um preço comum
+$q=q(X)$ não decrescente na vazão total $X=\sum_r x_r$, $\dot x_r=a_r-b\,q\,x_r^{2}$. No
+equilíbrio, $a_r=b\,q^\star x_r^{\star2}$. Com
+$V(x)=\Dis(x^\star\|x)=\sum_r[x^\star_r/x_r-\log(x^\star_r/x_r)-1]$,
+\[
+\dot V=\sum_r\frac{x_r-x^\star_r}{x_r^2}\,\dot x_r
+=-b\,q^\star\sum_r\frac{(x_r-x^\star_r)^2(x_r+x^\star_r)}{x_r^2}
+\;+\;b\,(q^\star-q)(X-X^\star)\;\le\;0 ,
+\]
+pois o segundo termo é $\le0$ quando $q$ cresce com $X$. Em uma rede, o preço do fluxo
+é a soma dos preços dos enlaces do caminho, e o segundo termo vira uma soma por enlace
+com o mesmo sinal.
+
+\paragraph{Sincronização parcial.} Se os eventos de congestionamento ocorrem com taxa
+$\Lambda$ e cada um é global com probabilidade $s$ ou atinge um único fluxo, escolhido
+com probabilidade $x_r/X$ ($X=\sum_s x_s$), o fluxo $r$ reduz a janela com intensidade
+$\nu_r=\Lambda\,[\,s+(1-s)\,x_r/X\,]$. O equilíbrio exige $a_r x_r^{-k}=b\,\nu_r\,x_r^{l}$.
+Tratando $X$ como fixo (campo médio), o expoente local é
+\[
+\frac{\partial\log a_r}{\partial\log x_r}=k+l+\frac{\partial\log\nu_r}{\partial\log x_r}
+=k+l+\frac{(1-s)\,x_r/X}{s+(1-s)\,x_r/X},
+\]
+que no ponto simétrico $x_r=X/n$ vale $k+l+\gamma(s)$, com
+$\gamma(s)=(1-s)/(sn+1-s)$. Para o Reno, $k+l=1$, o que dá \eqref{eq:interp}; e
+$\gamma=1/2$ exatamente em $s=1/(n+1)$.
+
 \section{Dicas técnicas}
 \label{app:dicas}
 
@@ -952,68 +1177,5 @@ python3 plot_cwnd.py dados/p4/reno-n2-B100/rep1 -o p4-cwnd-reno-n2-B100.png
 \end{lstlisting}
 Cuidado numérico: quando $\mathcal U<10^{-8}$, o cálculo de $\log\AM-\overline{\log z}$
 perde precisão por cancelamento; não interprete razões de ciclo nesse nível.
-
-\section{Derivações}
-\label{app:deriv}
-
-As contas abaixo são no modelo fluido, sem atraso de realimentação.
-
-\paragraph{Expoente $\alpha=k+l+1$.} Em um RTT a janela cresce $a\,w^{-k}$. Com perda
-independente por pacote, há em média $p\,w$ perdas por RTT, e cada uma retira $b\,w^{l}$.
-No equilíbrio, $a\,w^{-k}=p\,w\cdot b\,w^{l}$, ou seja, $p=(a/b)\,w^{-(k+l+1)}$. Com vários
-fluxos sujeitos ao mesmo sinal de perda $q$ (o “preço” do gargalo),
-$x_r=(a_r/(b\,q))^{1/\alpha}$. Essa é exatamente a condição de otimalidade de
-$\max\sum_r w_r\,x_r^{1-\alpha}/(1-\alpha)$ sujeito a $\sum_r x_r\le c$, com $w_r=a_r/b$:
-o equilíbrio é $\alpha$-justo. Com $a_r\propto1/T_r^2$, vem $x_r\propto T_r^{-2/\alpha}$.
-
-\paragraph{Decomposição pitagórica.} Com $z^\star_r=x^\star_r/\mu_r=c/\sum_s\mu_s$ (igual
-para todo $r$), $\hat\rho=\AM(z)/z^\star$. Então
-\[
-\Dis(x\|x^\star)=\sum_r\Big[\frac{z_r}{z^\star}-\log\frac{z_r}{z^\star}-1\Big]
-=n\hat\rho-n\log\GM(z)+n\log z^\star-n .
-\]
-Somando e subtraindo $n\log\AM(z)$ e usando $\log\hat\rho=\log\AM(z)-\log z^\star$,
-obtém-se $n\log\frac{\AM(z)}{\GM(z)}+n(\hat\rho-\log\hat\rho-1)$. Os dois termos são
-$\ge0$: o primeiro pela desigualdade das médias, o segundo porque
-$u-\log u-1\ge0$.
-
-\paragraph{MD não muda $\mathcal U$; AI diminui.} $\mathcal U$ depende só das razões
-$z_r/z_s$, que a MD $x\mapsto\beta x$ preserva. Com $\mu=\ones$, somar $t$ a todos os
-fluxos dá $\frac{d}{dt}\mathcal U(x+t\ones)=n\big[1/\AM(x)-\overline{1/x}\big]\le0$,
-pela desigualdade entre as médias aritmética e harmônica, com igualdade só em
-$x\parallel\ones$.
-
-\paragraph{Contração por $\beta^2$.} Com perdas sincronizadas e $\mu=\ones$, entre dois
-estados imediatamente anteriores a perdas a MD leva a soma de $c$ para $\beta c$ e o AI
-devolve $(1-\beta)c/n=(1-\beta)x^\star_r$ a cada fluxo. O mapa por ciclo é
-$x'=\beta x+(1-\beta)x^\star$: o desvio $x-x^\star$ encolhe por $\beta$ a cada ciclo. Perto
-da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.4), logo
-$\mathcal U_{m+1}/\mathcal U_m\to\beta^2$.
-
-\paragraph{Lyapunov.} No modelo fluido do AIMD ($k=0$, $l=1$), com um preço comum
-$q=q(X)$ não decrescente na vazão total $X=\sum_r x_r$, $\dot x_r=a_r-b\,q\,x_r^{2}$. No
-equilíbrio, $a_r=b\,q^\star x_r^{\star2}$. Com
-$V(x)=\Dis(x^\star\|x)=\sum_r[x^\star_r/x_r-\log(x^\star_r/x_r)-1]$,
-\[
-\dot V=\sum_r\frac{x_r-x^\star_r}{x_r^2}\,\dot x_r
-=-b\,q^\star\sum_r\frac{(x_r-x^\star_r)^2(x_r+x^\star_r)}{x_r^2}
-\;+\;b\,(q^\star-q)(X-X^\star)\;\le\;0 ,
-\]
-pois o segundo termo é $\le0$ quando $q$ cresce com $X$. Em uma rede, o preço do fluxo
-é a soma dos preços dos enlaces do caminho, e o segundo termo vira uma soma por enlace
-com o mesmo sinal.
-
-\paragraph{Sincronização parcial.} Se os eventos de congestionamento ocorrem com taxa
-$\Lambda$ e cada um é global com probabilidade $s$ ou atinge um único fluxo, escolhido
-com probabilidade $x_r/X$ ($X=\sum_s x_s$), o fluxo $r$ reduz a janela com intensidade
-$\nu_r=\Lambda\,[\,s+(1-s)\,x_r/X\,]$. O equilíbrio exige $a_r x_r^{-k}=b\,\nu_r\,x_r^{l}$.
-Tratando $X$ como fixo (campo médio), o expoente local é
-\[
-\frac{\partial\log a_r}{\partial\log x_r}=k+l+\frac{\partial\log\nu_r}{\partial\log x_r}
-=k+l+\frac{(1-s)\,x_r/X}{s+(1-s)\,x_r/X},
-\]
-que no ponto simétrico $x_r=X/n$ vale $k+l+\gamma(s)$, com
-$\gamma(s)=(1-s)/(sn+1-s)$. Para o Reno, $k+l=1$, o que dá \eqref{eq:interp}; e
-$\gamma=1/2$ exatamente em $s=1/(n+1)$.
 
 \end{document}
