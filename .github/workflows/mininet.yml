@@ -19,8 +19,9 @@ jobs:
       - name: Instalar Mininet e dependencias
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q mininet openvswitch-switch iperf3 ethtool iputils-ping \
-               python3-numpy python3-pandas python3-matplotlib
+          sudo apt-get install -y -q --no-install-recommends mininet openvswitch-switch iperf3 \
+               ethtool iputils-ping python3-pip
+          sudo python3 -m pip install -q --break-system-packages numpy pandas matplotlib
           sudo systemctl start openvswitch-switch || sudo service openvswitch-switch start
           for m in sch_netem sch_red tcp_scalable; do
             sudo modprobe $m || { sudo apt-get install -y -q linux-modules-extra-$(uname -r) && sudo modprobe $m; }

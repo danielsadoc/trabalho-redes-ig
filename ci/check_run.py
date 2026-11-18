@@ -39,7 +39,11 @@ def main() -> int:
         if "error" in it:
             erros.append(f"iperf3 flow{i}: {it['error']}")
         else:
-            print(f"   flow{i}: iperf3 {it['end']['sum_received']['bits_per_second'] / 1e6:.2f} Mb/s")
+            snd = it["end"]["streams"][0]["sender"]
+            print(f"   flow{i}: iperf3 {it['end']['sum_received']['bits_per_second'] / 1e6:.2f} Mb/s, "
+                  f"retransmissoes {snd.get('retransmits')}, max_snd_cwnd {snd.get('max_snd_cwnd')}, "
+                  f"max_snd_wnd {snd.get('max_snd_wnd')}, sndbuf {it['start'].get('sndbuf_actual')}, "
+                  f"rcvbuf {it['start'].get('rcvbuf_actual')}")
     qpath = os.path.join(a.run_dir, "queue.csv")
     if os.path.exists(qpath):
         q = list(csv.DictReader(open(qpath)))
@@ -47,6 +51,7 @@ def main() -> int:
             backlog = [int(r["backlog_pkts"]) for r in q]
             print(f"   fila: ocupacao media {sum(backlog) / len(backlog):.1f}, max {max(backlog)} pacotes; "
                   f"descartes {q[-1]['dropped']}")
+    print(f"   hosts: {meta.get('estado_hosts')}")
     medido = meta["rtt_medido_ping_ms"]
     print(f"   RTT medido por ping: {medido}")
     if a.rtt_ms:

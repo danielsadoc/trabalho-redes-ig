@@ -199,6 +199,12 @@ def main() -> None:
                     subprocess.run(f"ethtool -K {intf.name} tso off gso off gro off", shell=True,
                                    capture_output=True)
 
+        estado_hosts = {
+            "tcp_rmem_receptor": r.cmd("sysctl -n net.ipv4.tcp_rmem").strip(),
+            "tcp_wmem_emissor": hosts[0].cmd("sysctl -n net.ipv4.tcp_wmem").strip(),
+            "qdisc_emissor": hosts[0].cmd(f"tc qdisc show dev {hosts[0].defaultIntf()}").strip(),
+            "cc_padrao": hosts[0].cmd("sysctl -n net.ipv4.tcp_congestion_control").strip(),
+        }
         gargalo = s1.connectionsTo(s2)[0][0].name
         configura_gargalo(gargalo, args, tc_log)
         for h, rtt in zip(hosts, rtts):
@@ -272,6 +278,7 @@ def main() -> None:
             "interface_gargalo": gargalo,
             "comandos_tc": tc_log,
             "tcp_rmem_wmem": TCP_MEM,
+            "estado_hosts": estado_hosts,
             "qdisc_gargalo": subprocess.run(["tc", "-s", "qdisc", "show", "dev", gargalo],
                                             capture_output=True, text=True).stdout,
             "kernel": platform.release(),
