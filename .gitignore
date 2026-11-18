@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# dados e graficos gerados pelos experimentos
+ig_starter/dados/
+*.png
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
