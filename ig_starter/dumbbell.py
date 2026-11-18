@@ -6,8 +6,10 @@
     hn --/
 
 * n emissores h1..hn, um receptor r.
-* O RTT de propagacao do fluxo i e aplicado com netem na saida s1 -> hi (caminho dos
-  ACKs). Assim o emissor nao tem fila artificial na propria interface.
+* O RTT de propagacao do fluxo i e aplicado com netem na saida do proprio emissor
+  (hi -> s1). O netem "solta" o pacote do socket ao enfileira-lo; sem isso, em kernels
+  recentes o TCP Small Queues limita cada fluxo a poucos pacotes na fila do gargalo,
+  que nunca enche (o roteador de verdade nao esta no mesmo kernel que o emissor).
 * O gargalo e a saida s1 -> s2: HTB com taxa C e, abaixo dele, uma fila de B pacotes
   (drop-tail = pfifo; ou RED com --red; ou netem com perda aleatoria com --loss).
 * Cada emissor abre UM fluxo iperf3 para r, com o algoritmo escolhido por fluxo
@@ -107,11 +109,21 @@ def configura_gargalo(intf: str, args, log: list) -> None:
     sh(f"tc qdisc add dev {intf} parent 1:10 handle 20: {leaf}", log)
 
 
-def configura_atraso(intf: str, rtt_ms: float, log: list) -> None:
-    """Atraso de ida e volta inteiro aplicado no caminho dos ACKs (s1 -> host)."""
-    sh(f"tc qdisc del dev {intf} root 2>/dev/null || true", log)
-    if rtt_ms > 0:
-        sh(f"tc qdisc add dev {intf} root netem delay {rtt_ms}ms limit 100000", log)
+def configura_atraso(host, rtt_ms: float, log: list) -> None:
+    """RTT de propagacao inteiro aplicado na saida do emissor (host -> s1).
+
+    Mesmo com rtt_ms = 0 instalamos um netem com atraso minimo (10 us): o netem desliga
+    o pacote do socket (skb_orphan_partial) e o TCP Small Queues para de contar os
+    pacotes que estao na fila do gargalo como se estivessem na placa do emissor.
+    """
+    intf = host.defaultIntf().name
+    atraso = f"{rtt_ms}ms" if rtt_ms > 0 else "10us"
+    for cmd in (f"tc qdisc del dev {intf} root 2>/dev/null || true",
+                f"tc qdisc add dev {intf} root netem delay {atraso} limit 100000"):
+        log.append(f"[{host.name}] {cmd}")
+        out = host.cmd(cmd + " ; echo rc=$?")
+        if "del dev" not in cmd and not out.strip().endswith("rc=0"):
+            sys.exit(f"falhou em {host.name}: {cmd}\n{out}")
 
 
 def monitor_fila(intf: str, t0: float, path: str, interval: float, stop: threading.Event) -> None:
@@ -208,7 +220,7 @@ def main() -> None:
         gargalo = s1.connectionsTo(s2)[0][0].name
         configura_gargalo(gargalo, args, tc_log)
         for h, rtt in zip(hosts, rtts):
-            configura_atraso(s1.connectionsTo(h)[0][0].name, rtt, tc_log)
+            configura_atraso(h, rtt, tc_log)
 
         # RTT minimo medido antes de ligar os fluxos (o minimo descarta a resolucao ARP)
         rtt_medido = {}

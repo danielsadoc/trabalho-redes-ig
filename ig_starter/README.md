@@ -52,8 +52,10 @@ Cada rodada grava, em `--out`:
 
 ### Como a rede é montada
 
-* O RTT de propagação do fluxo *i* é aplicado com `netem delay` na saída `s1 → hi`
-  (caminho dos ACKs). Assim o emissor não tem uma fila artificial na própria interface.
+* O RTT de propagação do fluxo *i* é aplicado com `netem delay` na saída do próprio
+  emissor (`hi → s1`). Isso também desliga o pacote do socket ao entrar no netem; sem
+  isso, em kernels recentes o *TCP Small Queues* limita cada fluxo a poucos pacotes na
+  fila do gargalo e o buffer nunca enche, o que não acontece com um roteador de verdade.
 * O gargalo é a saída `s1 → s2`: `htb rate C` com uma fila folha `handle 20:` que é
   `pfifo limit B` (drop-tail), `red` (`--red`, limiares em `--red-min/--red-max` × B) ou
   `netem loss p% limit B` (`--loss`).
