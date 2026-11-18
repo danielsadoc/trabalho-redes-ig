@@ -1,0 +1,68 @@
+name: Mininet (dumbbell.py)
+
+# Roda experimentos curtos com o codigo inicial num Ubuntu real: atraso por fluxo (netem),
+# RED, perda aleatoria e um cenario da Parte 4. Os CSVs e graficos ficam nos artefatos.
+on:
+  push:
+    paths: ["ig_starter/**", "ci/**", ".github/workflows/mininet.yml"]
+  pull_request:
+    paths: ["ig_starter/**", "ci/**", ".github/workflows/mininet.yml"]
+  workflow_dispatch:
+
+jobs:
+  mininet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Mininet e dependencias
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q mininet openvswitch-switch iperf3 ethtool iputils-ping \
+               python3-numpy python3-pandas python3-matplotlib
+          sudo systemctl start openvswitch-switch || sudo service openvswitch-switch start
+          for m in sch_netem sch_red tcp_scalable; do
+            sudo modprobe $m || { sudo apt-get install -y -q linux-modules-extra-$(uname -r) && sudo modprobe $m; }
+          done
+          uname -r
+          sysctl net.ipv4.tcp_available_congestion_control
+
+      - name: RTTs por fluxo (netem) com drop-tail
+        working-directory: ig_starter
+        run: |
+          sudo python3 dumbbell.py --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 \
+               --duration 30 --qmon --ping --out dados/ci/rtt
+          python3 ../ci/check_run.py dados/ci/rtt --rtt-ms 20,40,60
+
+      - name: RED no gargalo
+        working-directory: ig_starter
+        run: |
+          sudo mn -c >/dev/null 2>&1 || true
+          sudo python3 dumbbell.py --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 \
+               --red --duration 30 --qmon --out dados/ci/red
+          python3 ../ci/check_run.py dados/ci/red --rtt-ms 20,40,60 --expect red
+
+      - name: Perda aleatoria (Parte 5)
+        working-directory: ig_starter
+        run: |
+          sudo mn -c >/dev/null 2>&1 || true
+          sudo python3 dumbbell.py --n 1 --cc cubic --rtt-ms 100 --bw 50 --buffer 2000 \
+               --loss 0.1 --duration 30 --out dados/ci/loss
+          python3 ../ci/check_run.py dados/ci/loss --rtt-ms 100 --expect loss
+
+      - name: Parte 4 (2 fluxos Reno escalonados)
+        working-directory: ig_starter
+        run: |
+          sudo mn -c >/dev/null 2>&1 || true
+          sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
+               --stagger 10 --duration 60 --qmon --out dados/ci/p4
+          python3 ../ci/check_run.py dados/ci/p4 --rtt-ms 40
+          for d in rtt red loss p4; do python3 plot_cwnd.py dados/ci/$d -o dados/ci/$d/cwnd.png; done
+
+      - name: Guardar dados e graficos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dados-ci
+          path: ig_starter/dados/ci
