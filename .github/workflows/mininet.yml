@@ -28,6 +28,20 @@ jobs:
           uname -r
           sysctl net.ipv4.tcp_available_congestion_control
 
+      - name: Calibrar netem (sem Mininet)
+        run: |
+          tc -V; cat /proc/net/psched
+          sudo ip netns add a; sudo ip netns add b
+          sudo ip link add va netns a type veth peer name vb netns b
+          sudo ip -n a addr add 10.9.0.1/24 dev va; sudo ip -n b addr add 10.9.0.2/24 dev vb
+          sudo ip -n a link set va up; sudo ip -n b link set vb up
+          for d in 0 10 20 50 100; do
+            if [ $d -gt 0 ]; then sudo ip netns exec b tc qdisc replace dev vb root netem delay ${d}ms limit 100000; fi
+            echo "netem ${d}ms -> $(sudo ip netns exec a ping -c 5 -i 0.2 -q 10.9.0.2 | tail -1)"
+          done
+          sudo ip netns exec b tc qdisc show dev vb
+          sudo ip netns del a; sudo ip netns del b
+
       - name: RTTs por fluxo (netem) com drop-tail
         working-directory: ig_starter
         run: |
