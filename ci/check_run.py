@@ -17,7 +17,7 @@ def main() -> int:
     ap.add_argument("--expect", choices=["red", "loss"], default=None)
     ap.add_argument("--min-samples", type=int, default=500)
     ap.add_argument("--min-backoffs", type=int, default=0,
-                    help="minimo de reducoes de janela por fluxo (quedas de cwnd > 20%%)")
+                    help="minimo de reducoes de janela por fluxo (mudancas de ssthresh)")
     a = ap.parse_args()
 
     erros = []
@@ -28,7 +28,10 @@ def main() -> int:
         rows = list(csv.DictReader(open(os.path.join(a.run_dir, f"flow{i}.csv"))))
         cwnd = [float(r["cwnd_pkts"]) for r in rows if r["cwnd_pkts"]]
         cc = {r["cc"] for r in rows}
-        backoffs = sum(1 for a_, b_ in zip(cwnd, cwnd[1:]) if b_ < 0.8 * a_)
+        # no Linux a cwnd cai aos poucos durante a recuperacao (PRR); o sinal confiavel de
+        # uma reducao de janela e a mudanca de ssthresh
+        ss = [r["ssthresh_pkts"] for r in rows]
+        backoffs = sum(1 for a_, b_ in zip(ss, ss[1:]) if b_ and b_ != a_)
         print(f"   flow{i}: {len(rows)} amostras, cc={cc}, cwnd min/max={min(cwnd, default=0):.0f}/"
               f"{max(cwnd, default=0):.0f}, reducoes de janela={backoffs}")
         if backoffs < a.min_backoffs:

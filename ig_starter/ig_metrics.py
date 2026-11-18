@@ -118,8 +118,11 @@ def detect_backoffs(t, cwnd, ssthresh=None, drop_frac: float = 0.2,
     """Detecta reducoes de janela de UM fluxo.
 
     Parametros: t, cwnd (e opcionalmente ssthresh) de um fluxo, na ordem do CSV.
-    Regra sugerida: ha uma reducao na amostra k se cwnd[k] < (1 - drop_frac) cwnd[k-1]
-    ou se ssthresh mudou. Uma reducao para cwnd <= timeout_cwnd e um timeout.
+    Regra sugerida: ha uma reducao na amostra k se ssthresh mudou, ou se
+    cwnd[k] < (1 - drop_frac) cwnd[k-1]. Atencao: no Linux a cwnd cai aos poucos durante
+    a recuperacao (PRR, RFC 6937), ao longo de ~1 RTT; amostrando a cada 10 ms, a queda
+    entre duas amostras seguidas costuma ser pequena. A mudanca de ssthresh e o sinal
+    mais confiavel. Uma reducao para cwnd <= timeout_cwnd e um timeout.
 
     Devolve (t_reducoes, t_timeouts), dois arrays de instantes em segundos.
     """

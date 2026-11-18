@@ -569,8 +569,10 @@ $n=2$, Reno, $B=100$. Identifique visualmente os eventos de perda.
 gráfico (escala log no eixo $y$ para $\mathcal U$). Confira numericamente a identidade
 \eqref{eq:pitagoras} nos seus dados.
 \item \inter\ Implemente \texttt{detect\_backoffs} em \texttt{ig\_metrics.py} para
-detectar automaticamente os instantes de perda (quedas de cwnd de mais de 20\% entre
-amostras, ou mudanças de \texttt{ssthresh}). Para cada perda, compare
+detectar automaticamente os instantes de perda. Use as mudanças de
+\texttt{ssthresh}: no Linux a cwnd cai aos poucos durante a recuperação (PRR,
+RFC~6937), ao longo de cerca de um RTT, então quedas grandes entre duas amostras
+seguidas são raras. Para cada perda, compare
 $\mathcal U$ imediatamente antes e imediatamente depois. A previsão (i) da
 Seção~\ref{sec:primer} --- MD não muda $\mathcal U$ --- vale? Quando falha, quantos
 fluxos reduziram a janela naquele evento?
@@ -864,8 +866,8 @@ nas interfaces dos hosts e do gargalo:
 Com \texttt{enable\_red=True} o Mininet instala uma qdisc RED com parâmetros fixos;
 anote-os no \texttt{metadata.json}.
 
-\paragraph{Detectar perdas.} Uma redução de cwnd de mais de 20\% entre duas amostras, ou
-uma mudança de \texttt{ssthresh}, marca uma redução de janela. Descarte reduções
+\paragraph{Detectar perdas.} Uma mudança de \texttt{ssthresh} marca uma redução de
+janela (a cwnd em si cai gradualmente, por causa do PRR). Descarte reduções
 causadas por \emph{timeout} (cwnd vai a 1 ou 2) e conte-as à parte.
 
 \paragraph{CPU.} Se a vazão medida ficar abaixo de $C$ sem perdas, desconfie da CPU.
