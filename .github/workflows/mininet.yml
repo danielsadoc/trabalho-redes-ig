@@ -19,8 +19,8 @@ jobs:
       - name: Instalar Mininet e dependencias
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends mininet openvswitch-switch iperf3 \
-               ethtool iputils-ping python3-pip
+          sudo apt-get install -y -q --no-install-recommends mininet openvswitch-switch \
+               openvswitch-testcontroller iperf iperf3 ethtool iputils-ping python3-pip
           sudo python3 -m pip install -q --break-system-packages numpy pandas matplotlib
           sudo systemctl start openvswitch-switch || sudo service openvswitch-switch start
           for m in sch_netem sch_red tcp_scalable; do
@@ -28,6 +28,9 @@ jobs:
           done
           uname -r
           sysctl net.ipv4.tcp_available_congestion_control
+
+      - name: Compatibilidade com o bufferbloat.py original (Parte 2)
+        run: sudo python3 ci/compat_bufferbloat.py
 
       - name: Calibrar netem (sem Mininet)
         run: |
