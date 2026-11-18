@@ -34,6 +34,13 @@ sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
 python3 plot_cwnd.py dados/teste -o teste.png
 ```
 
+## Testes automáticos
+
+* **Mininet (dumbbell.py)** roda a cada mudança no código: atraso por fluxo, RED, perda
+  aleatória e um cenário da Parte 4, com verificações de RTT, perdas e qdisc.
+* **Experimentos de referência** (disparo manual na aba *Actions*) roda versões curtas
+  das Partes 2, 4, 5 e 6 e guarda os dados como artefatos.
+
 ## Compilar o enunciado
 
 ```bash

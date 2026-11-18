@@ -88,8 +88,8 @@ começa com um estudo curto de \emph{bufferbloat}, para aprender o ambiente, e d
 usa uma lente nova --- a \textbf{geometria da informação do AIMD} --- para medir
 \emph{justiça} e \emph{eficiência} como duas componentes ortogonais de uma única
 distância. Várias previsões dessa teoria foram verificadas apenas em simulação
-numérica; \textbf{nunca foram testadas contra uma pilha TCP real}. É aí que vocês
-entram.
+numérica; até onde sabemos, \textbf{nunca foram testadas contra uma pilha TCP real}.
+É aí que vocês entram.
 
 \smallskip
 \begin{tabularx}{\linewidth}{@{}lX@{}}
@@ -127,7 +127,8 @@ Em seguida, usamos o mesmo ambiente para fazer perguntas mais finas sobre a
 perda ($\beta=1/2$ no Reno). Isso vale no Linux?
 \item Por que um fluxo com RTT duas vezes maior recebe às vezes metade da banda e às
 vezes um quarto? A teoria diz que a resposta depende do \emph{grau de sincronização}
-das perdas, com uma fórmula explícita. Ninguém mediu isso no Mininet.
+das perdas, com uma fórmula explícita. Até onde sabemos, essa fórmula nunca foi
+testada numa pilha TCP real.
 \item O CUBIC tem expoente de justiça $4/3$ e o Reno tem $2$. O que isso significa, e
 como se mede?
 \end{itemize}
@@ -224,11 +225,15 @@ $\alpha\to\infty$ é max-min.
 Protocolo & $k$ & $l$ & $\alpha$ & previsão $\bar w\propto p^{-1/\alpha}$\\
 \midrule
 Reno (AIMD) & $0$ & $1$ & $2$ & $p^{-1/2}$ (lei de Mathis)\\
-Scalable TCP (MIMD) & $-1$ & $1$ & $1$ & $p^{-1}$\\
+Scalable TCP (MIMD)$^{*}$ & $-1$ & $1$ & $1$ & $p^{-1}$\\
 AIAD & $0$ & $0$ & $1$ & $p^{-1}$\\
 CUBIC (correspondência de escala) & $-2/3$ & $1$ & $4/3$ & $p^{-3/4}$\\
 \bottomrule
 \end{tabular}
+
+\smallskip
+{\footnotesize $^{*}$No Linux, só com janela acima de 100 pacotes; abaixo disso o
+incremento é de 1 pacote por RTT (Parte 5).}
 \end{center}
 
 \paragraph{RTTs diferentes.} Com $a_r\propto1/T_r^2$ (o RTT entra duas vezes: na
@@ -353,8 +358,8 @@ taxa). O manuscrito mostra que o expoente de justiça efetivo do Reno é
 \label{eq:interp}
 \end{equation}
 que vai de $\alpha=2$ ($s=0$, dessincronizado) a $\alpha=1$ ($s=1$, sincronizado). O
-ponto médio está em $s=1/n$, e não em $s=1/2$: com muitos fluxos, \emph{uma pequena
-fração de eventos globais já domina}.
+ponto médio ($\gamma=1/2$) está em $s=1/(n+1)\approx1/n$, e não em $s=1/2$: com muitos
+fluxos, \emph{uma pequena fração de eventos globais já domina}.
 
 \paragraph{Como estimar $s$ a partir de um traço.} Agrupe as reduções de janela de todos
 os fluxos em \emph{eventos} (reduções que acontecem dentro de uma janela de tempo
@@ -405,11 +410,11 @@ Arquivo & Propósito\\
 \end{tabularx}
 \end{center}
 
-\paragraph{Pacotes e verificações.} Na VM:
+\paragraph{Pacotes e verificações.} Na VM (o Mininet já vem instalado na VM Vagrant):
 \begin{lstlisting}[style=sh]
 sudo apt-get update
-sudo apt install python3-pip iperf3 ethtool
-sudo python3 -m pip install mininet matplotlib numpy pandas
+sudo apt install iperf3 ethtool git python3-numpy python3-pandas python3-matplotlib
+git clone https://github.com/danielsadoc/trabalho-redes-ig    # codigo da segunda metade
 # algoritmos de controle de congestionamento disponiveis
 sysctl net.ipv4.tcp_available_congestion_control
 sudo modprobe tcp_scalable
@@ -459,9 +464,13 @@ $q=100$ pacotes (150\,kB com MTU de 1500 bytes). Simultaneamente:
 \item inicie um fluxo TCP Reno de longa duração de h1 para h2 (iperf3);
 \item colete 10 pings por segundo de h1 para h2 e registre os RTTs;
 \item registre a ocupação da fila do gargalo (\texttt{monitor.py}) e a janela de
-congestionamento do fluxo (\texttt{cwnd\_monitor.py}, do código da segunda metade).
+congestionamento do fluxo (o \texttt{bufferbloat.py} já mede a cwnd; outra opção é rodar
+\texttt{cwnd\_monitor.py -{}-dst <IP de h2> -{}-out cwnd.csv} em h1).
 \end{itemize}
-Plote as séries temporais do RTT, da fila e da cwnd. Repita com $q=20$.
+Plote as séries temporais do RTT, da fila e da cwnd. Repita com $q=20$. Rode cada caso
+por pelo menos 200\,s: com $q=100$ o RTT passa de meio segundo e cada dente de serra
+dura cerca de 30\,s. Para conferir seus números, o mesmo cenário roda com
+\texttt{sudo python3 dumbbell.py -{}-n 1 -{}-rtt-ms 20 -{}-bw 1.5 -{}-buffer 100 -{}-duration 200 -{}-qmon -{}-ping -{}-out p2}.
 
 \paragraph{Gráficos obrigatórios} (6 no total):
 \begin{itemize}
@@ -495,9 +504,10 @@ Estes exercícios garantem que vocês sabem calcular as quantidades que serão m
 Respostas curtas, com as contas.
 
 \begin{enumerate}[label=3.\arabic*]
-\item \basico\ Usando $\alpha=k+l+1$, preencha a tabela da Seção~\ref{sec:primer} para
-AIAD, MIMD e para o binomial $(k,l)=(1,1)$ (IIAD). Qual deles é o mais “justo” no
-sentido de $\alpha$?
+\item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela da Seção~\ref{sec:primer} as
+linhas de IIAD $(k,l)=(1,0)$, SQRT $(k,l)=(1/2,1/2)$ e do binomial $(k,l)=(1,1)$ que o
+\texttt{verify\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
+“amigáveis ao TCP”? Qual é o mais justo no sentido de $\alpha$?
 \item \basico\ Para $n=2$ e $\mu=\ones$, mostre que $\mathcal U(x)=2\log\frac{(x_1+x_2)/2}{\sqrt{x_1x_2}}$
 e que $\mathcal U(\lambda x)=\mathcal U(x)$ para todo $\lambda>0$. Conclua que a MD
 sincronizada não muda $\mathcal U$.
@@ -602,10 +612,10 @@ perdas que atingem todos os fluxos ao mesmo tempo? Como isso afeta as previsões
 
 O objetivo é medir o expoente $\alpha$ de \eqref{eq:alpha} no Linux.
 
-\paragraph{Montagem.} Um único fluxo através do gargalo (\texttt{dumbbell.py --n 1 --loss}). Introduza
+\paragraph{Montagem.} Um único fluxo através do gargalo (\texttt{dumbbell.py -{}-n 1 -{}-loss}). Introduza
 perda aleatória independente por pacote com probabilidade $p$ \emph{na interface de saída
 do switch} (não no emissor: perdas na fila local do emissor são vistas pelo TCP de outra
-forma). No TCLink, o parâmetro \texttt{loss} é em \emph{porcento}. Use uma capacidade alta
+forma). No \texttt{dumbbell.py}, \texttt{-{}-loss} é em \emph{porcento}, como no netem. Use uma capacidade alta
 o bastante (por exemplo 50\,Mb/s) e um buffer grande o bastante para que quase todas as
 perdas sejam as aleatórias. Valores de referência: RTT de 100\,ms e $p$ em pelo menos
 sete valores log-espaçados entre $2\times10^{-4}$ e $2\times10^{-2}$.
@@ -616,9 +626,13 @@ sete valores log-espaçados entre $2\times10^{-4}$ e $2\times10^{-2}$.
 $\log p$. Ajuste uma reta e estime $\hat\alpha=-1/\text{inclinação}$, com intervalo de
 confiança (repita cada ponto pelo menos 5 vezes). Compare com a lei de Mathis
 $\bar w\approx1{,}22/\sqrt p$.
-\item \inter\ Repita para Scalable TCP (\texttt{-C scalable}). A previsão é
-$\hat\alpha\approx1$. Leia o código-fonte de \texttt{tcp\_scalable.c} do seu kernel e
-identifique o incremento e a fração retida $\beta$.
+\item \inter\ Repita para Scalable TCP (\texttt{-C scalable}). Leia o código-fonte de
+\texttt{tcp\_scalable.c} do seu kernel, identifique a fração retida $\beta$ e o
+incremento, e explique por que ele só é MIMD ($\alpha=1$) quando a janela passa de
+\texttt{TCP\_SCALABLE\_AI\_CNT} pacotes (100 nos kernels recentes). Abaixo disso, que
+$\alpha$ você espera? Escolha $p$ e o RTT para ver os dois regimes. Dica: no regime
+MIMD a janela fica perto de $0{,}08/p$ pacotes, e a capacidade do gargalo não pode
+limitar a vazão (com $p=2\times10^{-4}$ e RTT de 100\,ms, isso já passa de 45\,Mb/s).
 \item \inter\ Repita para CUBIC. O CUBIC do Linux tem uma região “amigável ao TCP” em
 que se comporta como um AIMD; fora dela, a previsão é $\hat\alpha=4/3$. Você deve ver
 \emph{dois regimes}. Encontre experimentalmente o valor de $p$ (e de RTT) onde ocorre a
@@ -636,8 +650,8 @@ mesmo gráfico log-log, as retas teóricas e as barras de erro.
 \pontos{2,0 pontos}
 \label{sec:sincronizacao}
 
-Esta é a parte com maior potencial de pesquisa: \textbf{a fórmula \eqref{eq:interp}
-nunca foi testada em uma pilha TCP real.}
+Esta é a parte com maior potencial de pesquisa: até onde sabemos, \textbf{a fórmula
+\eqref{eq:interp} nunca foi testada em uma pilha TCP real.}
 
 \paragraph{Montagem.} Topologia da Figura~\ref{fig:dumbbell} com $n=3$ fluxos Reno e
 atrasos de acesso escolhidos para que os RTTs de propagação fiquem na razão $1:2:3$ (por
@@ -659,15 +673,15 @@ contra $\hat s$, com a curva teórica \eqref{eq:interp} sobreposta. Maneiras de 
 sincronização:
 \begin{itemize}
 \item tamanho do buffer $B$ (de $0{,}25$ a $4$ BDPs);
-\item disciplina de fila: drop-tail (padrão) $\times$ RED (\texttt{dumbbell.py --red});
+\item disciplina de fila: drop-tail (padrão) $\times$ RED (\texttt{dumbbell.py -{}-red});
 \item número de fluxos $n\in\{3,5,10\}$ (com RTTs log-espaçados);
 \item uma pequena perda aleatória adicional (que cria eventos individuais);
 \item tráfego de fundo com fluxos curtos (por exemplo, downloads periódicos com \texttt{curl}).
 \end{itemize}
-\item \avancado\ Para $n=10$, a teoria coloca o ponto médio ($\alpha_{\rm ef}=1{,}5$) em
-$s=1/n=0{,}1$; para $n=30$, $s=0{,}1$ já dá $\alpha_{\rm ef}\approx1{,}23$, perto do
-regime sincronizado. Seus dados confirmam que o ponto médio se desloca para $s=1/n$
-quando $n$ cresce?
+\item \avancado\ Pela fórmula \eqref{eq:interp}, com $n=10$ e $s=0{,}1$ já se tem
+$\alpha_{\rm ef}\approx1{,}47$, quase o ponto médio; com $n=30$ e $s=0{,}1$,
+$\alpha_{\rm ef}\approx1{,}23$, perto do regime sincronizado. Seus dados confirmam que o
+ponto médio se desloca para $s\approx1/n$ quando $n$ cresce?
 \item \avancado\ Volte à pergunta 2.4. Para quais valores de $B$ as perdas foram
 efetivamente dessincronizadas no seu experimento? O que isso diz sobre a regra
 $\mathrm{RTT}\cdot C/\sqrt N$?
@@ -686,7 +700,8 @@ O manuscrito mostra que a identificação “a redução define a geometria; $(k
 utilidade $\alpha$-justa” e a função de Lyapunov $\Dis(x^\star\|x)$ valem em qualquer
 topologia, não só com um gargalo. Esta parte testa isso na rede da
 Figura~\ref{fig:parking}, com os atrasos de acesso ajustados para que os três fluxos
-tenham o mesmo RTT de propagação.
+tenham o mesmo RTT de propagação. Monte a topologia adaptando o \texttt{dumbbell.py}
+(classe da topologia e comandos \texttt{tc} dos dois gargalos).
 
 \begin{figure}[htbp]
 \centering
@@ -731,9 +746,9 @@ negativo bem feito (“a previsão falha, e eis por quê”) também é um resul
 de artigo: vários $n$, repetições suficientes, análise de sensibilidade de $\Delta$, e
 uma explicação para os desvios. Primeiro passo: 10 repetições de cada ponto da Parte 6.
 \item \textbf{A contração transversal do CUBIC.} O CUBIC tem estado bidimensional
-$(w,W_{\max})$ e o manuscrito deixa em aberto sua geometria. Meça
-$\mathcal U_{m+1}/\mathcal U_m$ do CUBIC em função de $\beta$ e $C$ (parâmetros do módulo
-\texttt{tcp\_cubic}) e proponha uma fórmula. Compare com uma simulação do mapa de ciclos
+$(w,W_{\max})$ e o manuscrito deixa em aberto sua geometria (questão aberta 3). Meça
+$\mathcal U_{m+1}/\mathcal U_m$ do CUBIC em função de $\beta$ e $C$ (parâmetros
+\texttt{beta} e \texttt{bic\_scale} do módulo \texttt{tcp\_cubic}) e proponha uma fórmula. Compare com uma simulação do mapa de ciclos
 usando \texttt{verify\_cubic.py} como base.
 \item \textbf{Atraso de realimentação.} Aumente o RTT (até 400\,ms) mantendo o BDP fixo
 e verifique se $\Dis(x^\star\|x(t))$ deixa de ser monótona. Existe um RTT a partir do
@@ -761,8 +776,8 @@ gráficos a partir dos dados brutos, sem rodar o Mininet de novo.
 \item \textbf{Dados brutos em CSV}, no formato gravado pelo \texttt{cwnd\_monitor.py}, com colunas
 \texttt{t\_s, flow\_id, cc, cwnd\_pkts, ssthresh\_pkts, srtt\_ms, bytes\_acked} e um
 \texttt{metadata.json} ao lado (o \texttt{dumbbell.py} já grava um) com: versão do kernel (\texttt{uname -r}), versão do
-Mininet e do iperf3, topologia, $C$, $B$, atrasos, qdisc, algoritmo por fluxo, semente,
-data e hora, e o \emph{commit} do repositório.
+Mininet e do iperf3, topologia, $C$, $B$, atrasos, qdisc, algoritmo por fluxo, número da
+repetição (o netem não aceita semente), data e hora, e o \emph{commit} do repositório.
 \item \textbf{Repetições}: pelo menos 5 por configuração, com intervalos de confiança de
 95\%. Diga explicitamente quais rodadas foram descartadas e por quê.
 \item \textbf{Sanidade}: em cada rodada, verifique que a CPU da VM não saturou
@@ -858,13 +873,22 @@ um enlace com \texttt{delay='10ms'} contribui 20\,ms para o RTT. Use \texttt{par
 \texttt{params2} se quiser parâmetros diferentes em cada ponta, por exemplo para colocar
 o buffer limitado (\texttt{max\_queue\_size}) só na saída do gargalo.
 
+\paragraph{TCP Small Queues.} Emissor e “roteador” estão no mesmo kernel. Em kernels
+recentes, um pacote parado na fila do gargalo pode continuar contado no socket do
+emissor, e o TCP Small Queues então limita cada fluxo a poucos pacotes nessa fila: o
+buffer nunca enche e não há perdas. O netem resolve isso, porque solta o pacote do
+socket ao enfileirá-lo. Por isso o \texttt{dumbbell.py} coloca o atraso na saída do
+emissor; se você montar sua própria topologia, garanta um netem com atraso na saída de
+cada emissor (o \texttt{TCLink} com \texttt{delay} já faz isso).
+
 \paragraph{Offloads.} TSO/GSO/GRO agrupam pacotes e distorcem cwnd e fila. Desligue-os
 nas interfaces dos hosts e do gargalo:
 \texttt{ethtool -K h1-eth0 tso off gso off gro off}.
 
 \paragraph{Filas.} Inspecione a qdisc real com \texttt{tc -s qdisc show dev s1-eth1}.
-Com \texttt{enable\_red=True} o Mininet instala uma qdisc RED com parâmetros fixos;
-anote-os no \texttt{metadata.json}.
+O \texttt{dumbbell.py -{}-red} instala RED com limiares \texttt{-{}-red-min} e
+\texttt{-{}-red-max} (frações do buffer) e probabilidade máxima \texttt{-{}-red-prob}; os
+comandos \texttt{tc} usados ficam no \texttt{metadata.json}.
 
 \paragraph{Detectar perdas.} Uma mudança de \texttt{ssthresh} marca uma redução de
 janela (a cwnd em si cai gradualmente, por causa do PRR). Descarte reduções

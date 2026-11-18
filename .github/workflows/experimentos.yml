@@ -35,6 +35,13 @@ jobs:
         working-directory: ig_starter
         run: ../ci/experimentos.sh ${{ matrix.grupo }}
 
+      - name: Guardar dados como artefato
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dados-${{ matrix.grupo }}
+          path: ig_starter/dados
+
       - name: Publicar no branch ci-resultados-${{ matrix.grupo }}
         if: always() && github.repository == 'danielsadoc/trabalho-redes-ig'
         working-directory: ig_starter
