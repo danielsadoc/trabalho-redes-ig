@@ -26,8 +26,9 @@
 
 % --------------------------------------------------------------------- parametros editaveis
 \newcommand{\semestre}{2026/2}
-\newcommand{\dataPreliminar}{[a definir]}   % versao preliminar + slides
-\newcommand{\dataFinal}{[a definir]}        % versao final
+\newcommand{\dataPreliminar}{16 (quarta-feira) e 18 (sexta-feira) de dezembro de 2026}
+\newcommand{\dataFinal}{21 de dezembro de 2026 (segunda-feira)}
+\newcommand{\dataNotas}{4 de janeiro de 2027}
 \newcommand{\tamanhoGrupo}{3}
 \newcommand{\linkCodigo}{https://drive.google.com/drive/folders/1OXwnsYDRsD-7qxpBDXE2uCf4oCdKQxyO?usp=sharing}
 
@@ -102,8 +103,10 @@ numérica; até onde sabemos, \textbf{nunca foram testadas contra uma pilha TCP 
 
 \section*{Entrega}
 \begin{itemize}
-\item Versão preliminar, com slides para serem apresentados: \dataPreliminar.
-\item Versão final, levando em conta os comentários: \dataFinal.
+\item \textbf{Apresentações dos resultados preliminares}, com slides, para discussão em
+sala: \dataPreliminar.
+\item \textbf{Entrega final do relatório}, levando em conta a discussão em sala: até
+\dataFinal. Esse prazo é firme: as notas precisam ser lançadas até \dataNotas.
 \item Grupos de até \tamanhoGrupo{} alunos. Cada grupo mantém um repositório no GitHub
 desde a primeira semana (Seção~\ref{sec:repro}).
 \end{itemize}
@@ -385,10 +388,11 @@ previsões é exatamente o tipo de resultado que interessa a um artigo.
 \section{Parte 1: Configuração \texorpdfstring{\basico}{}}
 \label{sec:setup}
 
-\paragraph{VM.} Siga \url{https://github.com/kaichengyan/mininet-vagrant} para montar
-a VM Vagrant (Ubuntu 20.04 com Mininet). Alternativamente, uma VM Ubuntu 22.04/24.04 com
-\texttt{sudo apt install mininet} também serve; registre qual você usou
-(Seção~\ref{sec:repro}).
+\paragraph{Ambiente.} O ambiente garantido é o \textbf{Ubuntu 24.04} (numa VM ou numa
+máquina própria): é onde o código e os experimentos de referência foram testados. Quem
+preferir pode usar a VM Vagrant do projeto original (Ubuntu 20.04,
+\url{https://github.com/kaichengyan/mininet-vagrant}), mas ela não foi testada. Registre
+qual ambiente você usou (Seção~\ref{sec:repro}).
 
 \paragraph{Código inicial.} No diretório inicial da VM:
 \begin{lstlisting}[style=sh]
@@ -404,7 +408,7 @@ O código também está em \url{\linkCodigo}. Os arquivos são:
 Arquivo & Propósito\\
 \midrule
 \texttt{run.sh} & Executa o experimento e gera os gráficos de uma vez.\\
-\texttt{bufferbloat.py} & Cria a topologia e mede cwnd, fila e RTT.\\
+\texttt{bufferbloat.py} & Esqueleto, com \texttt{TODO}s, que cria a topologia e mede fila e RTT.\\
 \texttt{monitor.py} & Monitora o comprimento da fila.\\
 \texttt{plot\_queue.py}, \texttt{plot\_ping.py} & Plotam a fila e o RTT.\\
 \texttt{plot\_defaults.py}, \texttt{helper.py} & Utilitários para gráficos.\\
@@ -413,11 +417,14 @@ Arquivo & Propósito\\
 \end{tabularx}
 \end{center}
 
-\paragraph{Pacotes e verificações.} Na VM (o Mininet já vem instalado na VM Vagrant):
+\paragraph{Pacotes e verificações.} No Ubuntu 24.04:
 \begin{lstlisting}[style=sh]
 sudo apt-get update
-sudo apt install iperf3 ethtool git python3-numpy python3-pandas python3-matplotlib
+sudo apt install mininet openvswitch-switch openvswitch-testcontroller iperf iperf3 \
+     ethtool git python3-numpy python3-pandas python3-matplotlib
 git clone https://github.com/danielsadoc/trabalho-redes-ig    # codigo da segunda metade
+# atraso, perda e RED; se falhar: sudo apt install linux-modules-extra-$(uname -r)
+sudo modprobe sch_netem; sudo modprobe sch_red
 # algoritmos de controle de congestionamento disponiveis
 sysctl net.ipv4.tcp_available_congestion_control
 sudo modprobe tcp_scalable
@@ -435,7 +442,12 @@ Rode também os scripts de verificação numérica do repositório
 métricas da Seção~\ref{sec:primer} e \texttt{plot\_cwnd.py} faz o gráfico básico.
 
 \paragraph{Observações.} Execute sempre com \texttt{sudo ./run.sh}. Se o Mininet
-terminar com erro (ou com Control-C), rode \texttt{sudo mn -c} antes de recomeçar.
+terminar com erro (ou com Control-C), rode \texttt{sudo mn -c} antes de recomeçar. No
+Ubuntu 24.04, troque \texttt{host=CPULimitedHost} por \texttt{host=Host} no
+\texttt{bufferbloat.py} (e importe \texttt{Host} de \texttt{mininet.node}): o
+\texttt{CPULimitedHost} depende de cgroups v1 e falha com
+“\texttt{cgroups not mounted on /sys/fs/cgroup}”. O aviso
+“\texttt{sch\_htb: quantum of class \dots\ is big}” que o Mininet imprime pode ser ignorado.
 
 % =====================================================================
 \section{Parte 2: Bufferbloat e o dente de serra do Reno \texorpdfstring{\basico}{}}
@@ -466,15 +478,16 @@ Crie a topologia da Figura~\ref{fig:topo1} na classe \texttt{BBTopo} de
 lento (1,5\,Mb/s). O RTT de propagação entre h1 e h2 é 20\,ms e o buffer do roteador tem
 $q=100$ pacotes (150\,kB com MTU de 1500 bytes). Simultaneamente:
 \begin{itemize}
-\item inicie um fluxo TCP Reno de longa duração de h1 para h2 (iperf3);
+\item inicie um fluxo TCP Reno de longa duração de h1 para h2 (o esqueleto usa o
+\texttt{iperf}, versão 2);
 \item colete 10 pings por segundo de h1 para h2 e registre os RTTs;
 \item registre a ocupação da fila do gargalo (\texttt{monitor.py}) e a janela de
-congestionamento do fluxo (o \texttt{bufferbloat.py} já mede a cwnd; outra opção é rodar
+congestionamento do fluxo (o \texttt{bufferbloat.py} não mede a cwnd: rode
 \texttt{cwnd\_monitor.py -{}-dst <IP de h2> -{}-out cwnd.csv} em h1).
 \end{itemize}
 Plote as séries temporais do RTT, da fila e da cwnd. Repita com $q=20$. Rode cada caso
-por pelo menos 200\,s: com $q=100$ o RTT passa de meio segundo e cada dente de serra
-dura cerca de 30\,s. Para conferir seus números, o mesmo cenário roda com
+por pelo menos 200\,s (o \texttt{run.sh} vem com \texttt{time=90}): com $q=100$ o RTT
+passa de meio segundo e cada dente de serra dura cerca de 30\,s. Para conferir seus números, o mesmo cenário roda com
 \texttt{sudo python3 dumbbell.py -{}-n 1 -{}-rtt-ms 20 -{}-bw 1.5 -{}-buffer 100 -{}-duration 200 -{}-qmon -{}-ping -{}-out p2}.
 
 \paragraph{Gráficos obrigatórios} (6 no total):

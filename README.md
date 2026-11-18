@@ -22,13 +22,13 @@ do projeto de bufferbloat da disciplina, distribuído à turma pelo professor.
 
 ## Começo rápido
 
-Na VM do Mininet (Ubuntu 20.04 ou mais novo):
+No Ubuntu 24.04 (testado; a VM Vagrant com Ubuntu 20.04 pode funcionar, mas não é testada):
 
 ```bash
+sudo apt install mininet openvswitch-switch openvswitch-testcontroller iperf iperf3 \
+     ethtool git python3-numpy python3-pandas python3-matplotlib
 git clone https://github.com/danielsadoc/trabalho-redes-ig
 cd trabalho-redes-ig/ig_starter
-sudo apt install iperf3 ethtool
-sudo python3 -m pip install mininet matplotlib numpy pandas
 sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
      --stagger 15 --duration 120 --qmon --out dados/teste
 python3 plot_cwnd.py dados/teste -o teste.png

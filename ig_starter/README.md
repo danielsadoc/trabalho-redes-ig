@@ -1,13 +1,14 @@
 # ig_starter — código inicial do Trabalho de Redes (geometria da informação do AIMD)
 
-Código para as Partes 2, 4, 5 e 6 do enunciado. Roda dentro da VM do Mininet
-(Ubuntu 20.04 ou mais novo) com Python 3.
+Código para as Partes 2, 4, 5 e 6 do enunciado. Testado no Ubuntu 24.04 com Python 3
+(a VM Vagrant com Ubuntu 20.04 pode funcionar, mas não é testada).
 
 ## Instalação
 
 ```bash
-sudo apt install iperf3 ethtool
-sudo python3 -m pip install mininet matplotlib numpy pandas pytest
+sudo apt install mininet openvswitch-switch openvswitch-testcontroller iperf iperf3 \
+     ethtool git python3-numpy python3-pandas python3-matplotlib
+sudo modprobe -a sch_netem sch_red  # se falhar: sudo apt install linux-modules-extra-$(uname -r)
 sudo modprobe tcp_scalable           # para a Parte 5
 ```
 
