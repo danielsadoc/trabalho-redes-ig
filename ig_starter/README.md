@@ -47,7 +47,7 @@ Cada rodada grava, em `--out`:
 * `iperf_flow<i>.json` — saída do iperf3;
 * `queue.csv` (com `--qmon`) — ocupação e descartes da fila do gargalo;
 * `ping.txt` (com `--ping`) — pings de h1 para r a 10 Hz;
-* `metadata.json` — parâmetros, comandos `tc` aplicados, estado final da fila, RTT medido
+* `metadata.json` — parâmetros, comandos `tc` aplicados, estado final da fila, RTT mínimo medido
   por ping antes dos fluxos, versões do kernel/Mininet/iperf3, carga da CPU, commit.
 
 ### Como a rede é montada

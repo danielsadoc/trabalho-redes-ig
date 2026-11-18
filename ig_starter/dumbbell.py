@@ -176,7 +176,8 @@ def main() -> None:
         subprocess.run(["modprobe", f"tcp_{cc}"], capture_output=True)
 
     switch = OVSBridge if args.switch == "ovsbr" else LinuxBridge
-    net = Mininet(topo=Dumbbell(n=n), switch=switch, controller=None, autoSetMacs=True)
+    net = Mininet(topo=Dumbbell(n=n), switch=switch, controller=None, autoSetMacs=True,
+                  autoStaticArp=True)  # sem ARP durante o experimento
     net.start()
     try:
         s1, s2, r = net.get("s1"), net.get("s2"), net.get("r")
@@ -199,11 +200,11 @@ def main() -> None:
         for h, rtt in zip(hosts, rtts):
             configura_atraso(s1.connectionsTo(h)[0][0].name, rtt, tc_log)
 
-        # RTT medido antes de ligar os fluxos
+        # RTT minimo medido antes de ligar os fluxos (o minimo descarta a resolucao ARP)
         rtt_medido = {}
         for h in hosts:
-            out = h.cmd(f"ping -c 5 -i 0.2 -q {r.IP()}")
-            m = re.search(r"= [\d.]+/([\d.]+)/", out)
+            out = h.cmd(f"ping -c 10 -i 0.2 -q {r.IP()}")
+            m = re.search(r"= ([\d.]+)/[\d.]+/", out)
             rtt_medido[h.name] = float(m.group(1)) if m else None
 
         # servidores iperf3 (um por fluxo)
