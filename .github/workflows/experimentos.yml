@@ -1,0 +1,61 @@
+name: Experimentos de referencia (Partes 2, 4, 5 e 6)
+
+# Disparo manual (aba Actions > "Experimentos de referencia" > Run workflow).
+# Roda versoes curtas dos experimentos do enunciado e publica CSVs, metadata.json e
+# graficos no branch "ci-resultados" deste repositorio.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  experimentos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Mininet e dependencias
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends mininet openvswitch-switch iperf3 \
+               ethtool iputils-ping python3-pip
+          sudo python3 -m pip install -q --break-system-packages numpy pandas matplotlib
+          sudo systemctl start openvswitch-switch || sudo service openvswitch-switch start
+          for m in sch_netem sch_red tcp_scalable; do
+            sudo modprobe $m || { sudo apt-get install -y -q linux-modules-extra-$(uname -r) && sudo modprobe $m; }
+          done
+
+      - name: Rodar experimentos
+        working-directory: ig_starter
+        run: |
+          run() { out=$1; shift; sudo mn -c >/dev/null 2>&1 || true
+                  sudo python3 dumbbell.py "$@" --out dados/$out
+                  python3 plot_cwnd.py dados/$out -o dados/$out/cwnd.png; }
+          # Parte 2: 1 fluxo Reno, 1,5 Mb/s, RTT 20 ms, buffer 100 e 20
+          run p2/q100 --n 1 --cc reno --rtt-ms 20 --bw 1.5 --buffer 100 --duration 60 --qmon --ping
+          run p2/q20  --n 1 --cc reno --rtt-ms 20 --bw 1.5 --buffer 20  --duration 60 --qmon --ping
+          # Parte 4: fluxos escalonados, RTT 40 ms, 10 Mb/s
+          run p4/reno-n2-B100  --n 2 --cc reno  --rtt-ms 40 --bw 10 --buffer 100 --stagger 15 --duration 120 --qmon
+          run p4/cubic-n2-B100 --n 2 --cc cubic --rtt-ms 40 --bw 10 --buffer 100 --stagger 15 --duration 120 --qmon
+          run p4/reno-n3-B20   --n 3 --cc reno  --rtt-ms 40 --bw 10 --buffer 20  --stagger 15 --duration 120 --qmon
+          # Parte 5: um fluxo com perda aleatoria (em porcento), RTT 100 ms
+          for cc in reno cubic scalable; do
+            for p in 0.02 0.1 0.5 2; do
+              run p5/$cc-p$p --n 1 --cc $cc --rtt-ms 100 --bw 50 --buffer 2000 --loss $p --duration 90
+            done
+          done
+          # Parte 6: RTTs 20/40/60 ms, drop-tail e RED
+          run p6/droptail-B100 --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --duration 120 --qmon
+          run p6/red-B100      --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --red --duration 120 --qmon
+
+      - name: Publicar no branch ci-resultados
+        if: always() && github.repository == 'danielsadoc/trabalho-redes-ig'
+        working-directory: ig_starter/dados
+        run: |
+          git init -q -b ci-resultados
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+              commit -q -m "Resultados do run $GITHUB_RUN_ID (${GITHUB_SHA::7})"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" ci-resultados

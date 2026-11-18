@@ -9,15 +9,16 @@ Saida: CSV com as colunas
 
   t_s           segundos desde --t0 (relogio de parede; todos os hosts do Mininet
                 compartilham o mesmo relogio, entao os fluxos ficam alinhados)
-  flow_id       porta de origem do fluxo (--sport)
+  flow_id       porta de origem do fluxo
   cc            algoritmo de controle de congestionamento reportado pelo kernel
   cwnd_pkts     janela de congestionamento, em segmentos
   ssthresh_pkts limiar de slow start, em segmentos (vazio enquanto nao definido)
   srtt_ms       RTT suavizado do kernel
   bytes_acked   bytes confirmados ate agora (derive para obter a vazao)
 
-Exemplo (dentro do host):
+Exemplos (dentro do host emissor, por exemplo na CLI do Mininet: h1 python3 ...):
     python3 cwnd_monitor.py --dst 10.0.0.3 --sport 50001 --out f1.csv --duration 60
+    python3 cwnd_monitor.py --dst 10.0.0.2 --out cwnd.csv --duration 60   # todas as conexoes
 """
 
 from __future__ import annotations
@@ -35,8 +36,13 @@ _NOT_CC = {"ts", "sack", "ecn", "ecnseen", "fastopen", "noecn", "app_limited", "
 _RE_KV = re.compile(r"(\w+):(\S+)")
 
 
-def parse_ss(output: str, sport: int) -> dict | None:
-    """Extrai os campos do socket cuja porta local e `sport`. Devolve None se nao achar."""
+def parse_ss(output: str, sport: int | None) -> list[dict]:
+    """Extrai os campos dos sockets na saida do `ss -tin`.
+
+    Com `sport`, so o socket cuja porta local e `sport`; sem `sport`, todos (flow_id = porta
+    local de cada um).
+    """
+    found = []
     lines = output.splitlines()
     for k, line in enumerate(lines):
         if line.startswith(("State", "Recv-Q", "Netid")) or not line.strip() or line[0].isspace():
@@ -44,28 +50,35 @@ def parse_ss(output: str, sport: int) -> dict | None:
         # colunas: [State] Recv-Q Send-Q Local:Port Peer:Port [Process]
         # (com filtro de estado, o ss omite a coluna State)
         cols = line.split()
-        if not any(tok.endswith(f":{sport}") for tok in cols[:5]):
+        locais = [tok for tok in cols[:5] if ":" in tok]
+        if not locais:
+            continue
+        porta_local = locais[0].rsplit(":", 1)[1]
+        if sport is not None and porta_local != str(sport):
             continue
         if k + 1 >= len(lines):
-            return None
+            break
         info = lines[k + 1].split()
         kv = dict(_RE_KV.findall(lines[k + 1]))
         cc = next((tok for tok in info if ":" not in tok and tok not in _NOT_CC), "")
         rtt = kv.get("rtt", "")
-        return {
+        found.append({
+            "flow_id": porta_local,
             "cc": cc,
             "cwnd_pkts": kv.get("cwnd", ""),
             "ssthresh_pkts": kv.get("ssthresh", ""),
             "srtt_ms": rtt.split("/")[0] if rtt else "",
             "bytes_acked": kv.get("bytes_acked", "0"),
-        }
-    return None
+        })
+    return found
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dst", required=True, help="IP do receptor")
-    ap.add_argument("--sport", type=int, required=True, help="porta de origem do fluxo (iperf3 --cport)")
+    ap.add_argument("--sport", type=int, default=None,
+                    help="porta de origem do fluxo (iperf3 --cport); sem ela, grava todas as conexoes "
+                         "para --dst (inclusive a conexao de controle do iperf3, com pouco trafego)")
     ap.add_argument("--out", required=True, help="arquivo CSV de saida")
     ap.add_argument("--interval", type=float, default=0.01, help="periodo de amostragem em s (padrao 0.01)")
     ap.add_argument("--duration", type=float, default=60.0, help="tempo maximo de coleta em s")
@@ -93,9 +106,8 @@ def main() -> None:
         while not stop and time.time() < deadline:
             now = time.time()
             out = subprocess.run(cmd, capture_output=True, text=True).stdout
-            row = parse_ss(out, args.sport)
-            if row is not None:
-                row.update(t_s=f"{now - t0:.4f}", flow_id=args.sport)
+            for row in parse_ss(out, args.sport):
+                row["t_s"] = f"{now - t0:.4f}"
                 writer.writerow(row)
                 n += 1
                 if n % 100 == 0:
