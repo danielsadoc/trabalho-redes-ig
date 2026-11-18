@@ -16,6 +16,8 @@ def main() -> int:
     ap.add_argument("--rtt-ms", default=None, help="RTTs de propagacao esperados por fluxo")
     ap.add_argument("--expect", choices=["red", "loss"], default=None)
     ap.add_argument("--min-samples", type=int, default=500)
+    ap.add_argument("--min-backoffs", type=int, default=0,
+                    help="minimo de reducoes de janela por fluxo (quedas de cwnd > 20%%)")
     a = ap.parse_args()
 
     erros = []
@@ -26,7 +28,11 @@ def main() -> int:
         rows = list(csv.DictReader(open(os.path.join(a.run_dir, f"flow{i}.csv"))))
         cwnd = [float(r["cwnd_pkts"]) for r in rows if r["cwnd_pkts"]]
         cc = {r["cc"] for r in rows}
-        print(f"   flow{i}: {len(rows)} amostras, cc={cc}, cwnd min/max={min(cwnd, default=0):.0f}/{max(cwnd, default=0):.0f}")
+        backoffs = sum(1 for a_, b_ in zip(cwnd, cwnd[1:]) if b_ < 0.8 * a_)
+        print(f"   flow{i}: {len(rows)} amostras, cc={cc}, cwnd min/max={min(cwnd, default=0):.0f}/"
+              f"{max(cwnd, default=0):.0f}, reducoes de janela={backoffs}")
+        if backoffs < a.min_backoffs:
+            erros.append(f"flow{i}: so {backoffs} reducoes de janela (esperava >= {a.min_backoffs})")
         if len(rows) < a.min_samples:
             erros.append(f"flow{i}: so {len(rows)} amostras")
         it = json.load(open(os.path.join(a.run_dir, f"iperf_flow{i}.json")))
@@ -34,6 +40,13 @@ def main() -> int:
             erros.append(f"iperf3 flow{i}: {it['error']}")
         else:
             print(f"   flow{i}: iperf3 {it['end']['sum_received']['bits_per_second'] / 1e6:.2f} Mb/s")
+    qpath = os.path.join(a.run_dir, "queue.csv")
+    if os.path.exists(qpath):
+        q = list(csv.DictReader(open(qpath)))
+        if q:
+            backlog = [int(r["backlog_pkts"]) for r in q]
+            print(f"   fila: ocupacao media {sum(backlog) / len(backlog):.1f}, max {max(backlog)} pacotes; "
+                  f"descartes {q[-1]['dropped']}")
     medido = meta["rtt_medido_ping_ms"]
     print(f"   RTT medido por ping: {medido}")
     if a.rtt_ms:

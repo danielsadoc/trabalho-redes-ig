@@ -54,6 +54,7 @@ from mininet.topo import Topo
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE_PORT = 5200   # iperf3 do fluxo i escuta em BASE_PORT + i
 BASE_CPORT = 50000  # porta de origem do fluxo i = BASE_CPORT + i (identifica o fluxo)
+TCP_MEM = "4096 8388608 33554432"  # tcp_rmem/tcp_wmem em todos os hosts (min padrao max)
 
 
 class Dumbbell(Topo):
@@ -189,6 +190,9 @@ def main() -> None:
                 if intf.name != "lo":
                     node.cmd(f"ethtool -K {intf.name} tso off gso off gro off 2>/dev/null")
             node.cmd("sysctl -qw net.ipv4.tcp_no_metrics_save=1")
+            # buffers de socket grandes desde o inicio: com o padrao (128 kB) a janela do
+            # receptor limita a cwnd a ~44 pacotes e o buffer do gargalo nunca enche
+            node.cmd(f"sysctl -qw net.ipv4.tcp_rmem='{TCP_MEM}' net.ipv4.tcp_wmem='{TCP_MEM}'")
         for sw in (s1, s2):
             for intf in sw.intfList():
                 if intf.name != "lo":
@@ -267,6 +271,7 @@ def main() -> None:
             "flow_id_por_fluxo": {f"flow{i}": BASE_CPORT + i for i in range(1, n + 1)},
             "interface_gargalo": gargalo,
             "comandos_tc": tc_log,
+            "tcp_rmem_wmem": TCP_MEM,
             "qdisc_gargalo": subprocess.run(["tc", "-s", "qdisc", "show", "dev", gargalo],
                                             capture_output=True, text=True).stdout,
             "kernel": platform.release(),
@@ -280,6 +285,10 @@ def main() -> None:
         }
         with open(os.path.join(args.out, "metadata.json"), "w") as fh:
             json.dump(meta, fh, indent=2, ensure_ascii=False)
+        # os arquivos foram criados como root; devolve ao usuario que chamou o sudo
+        if os.environ.get("SUDO_UID"):
+            subprocess.run(["chown", "-R", f"{os.environ['SUDO_UID']}:{os.environ.get('SUDO_GID', '')}",
+                            args.out], capture_output=True)
         print(f"ok: resultados em {args.out}")
         if args.cli:
             from mininet.cli import CLI
