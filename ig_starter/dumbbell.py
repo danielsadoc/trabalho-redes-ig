@@ -180,6 +180,10 @@ def main() -> None:
     n = args.n
     ccs = lista(args.cc, n)
     rtts = lista(args.rtt_ms, n, float)
+    # primeiro diretorio que ainda nao existe no caminho de --out (para devolver ao usuario)
+    novo = os.path.abspath(args.out)
+    while not os.path.exists(os.path.dirname(novo)):
+        novo = os.path.dirname(novo)
     os.makedirs(args.out, exist_ok=True)
     tc_log: list[str] = []
 
@@ -306,8 +310,9 @@ def main() -> None:
             json.dump(meta, fh, indent=2, ensure_ascii=False)
         # os arquivos foram criados como root; devolve ao usuario que chamou o sudo
         if os.environ.get("SUDO_UID"):
-            subprocess.run(["chown", "-R", f"{os.environ['SUDO_UID']}:{os.environ.get('SUDO_GID', '')}",
-                            args.out], capture_output=True)
+            dono = f"{os.environ['SUDO_UID']}:{os.environ.get('SUDO_GID', '')}"
+            subprocess.run(["chown", "-R", dono, novo if os.path.exists(novo) else args.out],
+                           capture_output=True)
         print(f"ok: resultados em {args.out}")
         if args.cli:
             from mininet.cli import CLI
