@@ -1,0 +1,65 @@
+{
+  "args": {
+    "n": 1,
+    "cc": "cubic",
+    "rtt_ms": "100",
+    "bw": 50.0,
+    "buffer": 2000,
+    "qdisc": "pfifo",
+    "red": false,
+    "ecn": false,
+    "red_min": 0.2,
+    "red_max": 0.6,
+    "red_prob": 0.1,
+    "loss": 1.0,
+    "stagger": 0.0,
+    "duration": 90.0,
+    "interval": 0.01,
+    "qmon": false,
+    "ping": false,
+    "switch": "ovsbr",
+    "out": "dados/p5/cubic-p1",
+    "cli": false
+  },
+  "cc_por_fluxo": [
+    "cubic"
+  ],
+  "rtt_prop_ms_por_fluxo": [
+    100.0
+  ],
+  "rtt_medido_ping_ms": {
+    "h1": 100.092
+  },
+  "flow_id_por_fluxo": {
+    "flow1": 50001
+  },
+  "interface_gargalo": "s1-eth2",
+  "comandos_tc": [
+    "tc qdisc del dev s1-eth2 root 2>/dev/null || true",
+    "tc qdisc add dev s1-eth2 root handle 1: htb default 10",
+    "tc class add dev s1-eth2 parent 1: classid 1:10 htb rate 50.0mbit",
+    "tc qdisc add dev s1-eth2 parent 1:10 handle 20: netem loss 1.0% limit 2000",
+    "[h1] tc qdisc del dev h1-eth0 root 2>/dev/null || true",
+    "[h1] tc qdisc add dev h1-eth0 root netem delay 100.0ms limit 100000"
+  ],
+  "tcp_rmem_wmem": "4096 8388608 33554432",
+  "estado_hosts": {
+    "tcp_rmem_receptor": "4096\t8388608\t33554432",
+    "tcp_wmem_emissor": "4096\t8388608\t33554432",
+    "qdisc_emissor": "qdisc noqueue 0: root refcnt 2",
+    "cc_padrao": "cubic"
+  },
+  "qdisc_gargalo": "qdisc htb 1: root refcnt 5 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000\n Sent 13545439 bytes 8991 pkt (dropped 108, overlimits 5661 requeues 0) \n backlog 0b 0p requeues 0\nqdisc netem 20: parent 1:10 limit 2000 loss 1%\n Sent 13545439 bytes 8991 pkt (dropped 108, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0\n",
+  "kernel": "7.0.0-1017-azure",
+  "mininet": "2.3.0",
+  "iperf3": "iperf 3.16 (cJSON 1.7.15)",
+  "python": "3.12.3",
+  "loadavg_fim": [
+    0.95166015625,
+    0.7783203125,
+    0.44775390625
+  ],
+  "inicio_epoch": 1795088369.6676524,
+  "data": "2026-11-19T11:41:01",
+  "commit": "f71bdad144a7f7758a8dc38b9aec825590f89a15"
+}
