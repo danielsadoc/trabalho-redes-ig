@@ -661,12 +661,14 @@ $\sum_r[x^\star_r\log(x^\star_r/x_r)-x^\star_r+x_r]$ e a de Itakura--Saito
 $\Dis(x^\star\|x)$. Em que fração dos ciclos cada uma \emph{aumenta}? Qual fica mais
 perto de ser sempre decrescente? (No modelo fluido, $\Dis(x^\star\|x)$ nunca aumenta;
 veja o Apêndice~\ref{app:deriv}.)
-\item \avancado\ \textbf{Sincronização forçada com ECN.} Com
+\item \avancado\ \textbf{Dá para forçar a sincronização?} Com
 \texttt{-{}-red -{}-ecn -{}-red-min 0.3 -{}-red-max 0.32 -{}-red-prob 1}, o roteador
-marca \emph{todos} os pacotes quando a fila média passa de cerca de 30\% do buffer, em
-vez de descartar alguns: todos os fluxos reduzem a janela no mesmo RTT. Repita o cenário
-de 4.1 assim e compare $\hat s$ e a razão $\mathcal U_{m+1}/\mathcal U_m$ com o
-drop-tail. A previsão $\beta^2$ fica mais precisa quando a sincronização é forçada?
+marca com ECN \emph{todos} os pacotes enquanto a fila média estiver acima de cerca de 30\%
+do buffer, em vez de descartar. A intuição é que todos os fluxos reduziriam a janela no
+mesmo RTT. Repita o cenário de 4.1 assim e compare $\hat s$ e a razão
+$\mathcal U_{m+1}/\mathcal U_m$ com o drop-tail. A intuição se confirma? Se não, explique
+por quê. (Pense na média móvel que o RED usa, em quanto tempo a fila média fica acima do
+limiar e em quantas vezes cada fluxo reduz a janela nesse intervalo.)
 \end{enumerate}
 
 \paragraph{Entregáveis obrigatórios:}
@@ -845,7 +847,8 @@ e verifique se $\Dis(x^\star\|x(t))$ deixa de ser monótona. Existe um RTT a par
 qual a monotonicidade quebra? A estabilidade com atraso é justamente o que a
 teoria da Seção~\ref{sec:primer} não cobre.
 \item \textbf{Disciplinas de fila com $\gamma>1$.} Em \eqref{eq:interp}, $\gamma\le1$.
-Existem disciplinas de fila que realizam $\gamma>1$, isto é, $\alpha>k+l+1$? Proponha uma (por exemplo, descarte com
+Existem disciplinas de fila que realizam $\gamma>1$, isto é, $\alpha>k+l+1$? Comece
+medindo $\gamma$ com RED e CoDel, com vários $n$ e repetições. Depois proponha uma (por exemplo, descarte com
 probabilidade que cresce mais que linearmente na taxa do fluxo), implemente-a num
 simulador simples em Python ou como qdisc, e meça $\alpha_{\rm ef}$.
 \item \textbf{Dente de serra com dois gargalos.} Na rede da Figura~\ref{fig:parking},
