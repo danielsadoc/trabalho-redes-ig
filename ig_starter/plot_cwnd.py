@@ -47,7 +47,9 @@ def main() -> None:
     a = meta.get("args", {})
     if a:
         fig.suptitle(f"C={a.get('bw')} Mb/s, B={a.get('buffer')} pacotes"
-                     + (", RED" if a.get("red") else "")
+                     + (f", {a.get('qdisc')}" if a.get("qdisc", "pfifo") != "pfifo" else "")
+                     + (", RED" if a.get("red") and not a.get("qdisc") else "")
+                     + (", ECN" if a.get("ecn") else "")
                      + (f", perda={a.get('loss')}%" if a.get("loss") else ""), fontsize=10)
     fig.tight_layout()
     fig.savefig(args.output, dpi=150)

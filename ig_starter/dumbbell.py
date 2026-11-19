@@ -94,16 +94,21 @@ def configura_gargalo(intf: str, args, log: list) -> None:
     sh(f"tc qdisc del dev {intf} root 2>/dev/null || true", log)
     sh(f"tc qdisc add dev {intf} root handle 1: htb default 10", log)
     sh(f"tc class add dev {intf} parent 1: classid 1:10 htb rate {args.bw}mbit", log)
+    ecn = " ecn" if args.ecn else ""
     if args.loss > 0:
         # netem como fila FIFO de B pacotes com perda iid por pacote (em porcento)
         leaf = f"netem loss {args.loss}% limit {args.buffer}"
-    elif args.red:
+    elif args.qdisc == "red":
         mtu = 1500
         minth = int(args.red_min * args.buffer * mtu)
-        maxth = int(args.red_max * args.buffer * mtu)
+        maxth = max(minth + mtu, int(args.red_max * args.buffer * mtu))
         burst = max(2, int((2 * minth + maxth) / (3 * mtu)))
         leaf = (f"red limit {args.buffer * mtu * 4} min {minth} max {maxth} avpkt {mtu} "
-                f"burst {burst} bandwidth {args.bw}mbit probability {args.red_prob}")
+                f"burst {burst} bandwidth {args.bw}mbit probability {args.red_prob}{ecn}")
+    elif args.qdisc == "codel":
+        leaf = f"codel limit {args.buffer}{ecn if ecn else ' noecn'}"
+    elif args.qdisc == "fq_codel":
+        leaf = f"fq_codel limit {args.buffer}{ecn if ecn else ' noecn'}"
     else:
         leaf = f"pfifo limit {args.buffer}"
     sh(f"tc qdisc add dev {intf} parent 1:10 handle 20: {leaf}", log)
@@ -159,7 +164,14 @@ def main() -> None:
     ap.add_argument("--rtt-ms", default="40", help="RTT de propagacao por fluxo: '40' ou '20,40,60'")
     ap.add_argument("--bw", type=float, default=10.0, help="capacidade do gargalo em Mb/s")
     ap.add_argument("--buffer", type=int, default=100, help="buffer do gargalo em pacotes")
-    ap.add_argument("--red", action="store_true", help="usar RED no gargalo em vez de drop-tail")
+    ap.add_argument("--qdisc", choices=["pfifo", "red", "codel", "fq_codel"], default="pfifo",
+                    help="disciplina da fila do gargalo: pfifo (drop-tail, padrao), red, codel ou "
+                         "fq_codel (uma fila por fluxo, com escalonamento justo)")
+    ap.add_argument("--red", action="store_true", help="atalho para --qdisc red")
+    ap.add_argument("--ecn", action="store_true",
+                    help="marcar com ECN em vez de descartar (com --qdisc red/codel/fq_codel); liga o "
+                         "ECN do TCP em todos os hosts. Com --red-min ~ --red-max e --red-prob 1, toda "
+                         "a fila acima do limiar e marcada: forca perdas sincronizadas")
     ap.add_argument("--red-min", type=float, default=0.2, help="limiar minimo do RED (fracao do buffer)")
     ap.add_argument("--red-max", type=float, default=0.6, help="limiar maximo do RED (fracao do buffer)")
     ap.add_argument("--red-prob", type=float, default=0.1, help="probabilidade maxima de descarte do RED")
@@ -177,6 +189,12 @@ def main() -> None:
 
     if os.geteuid() != 0:
         sys.exit("rode com sudo")
+    if args.red:
+        args.qdisc = "red"
+    if args.ecn and args.qdisc == "pfifo":
+        sys.exit("--ecn precisa de --qdisc red, codel ou fq_codel")
+    if args.loss > 0 and args.qdisc != "pfifo":
+        sys.exit("--loss usa uma fila netem (drop-tail); nao combine com --qdisc/--red")
     n = args.n
     ccs = lista(args.cc, n)
     rtts = lista(args.rtt_ms, n, float)
@@ -206,6 +224,7 @@ def main() -> None:
                 if intf.name != "lo":
                     node.cmd(f"ethtool -K {intf.name} tso off gso off gro off 2>/dev/null")
             node.cmd("sysctl -qw net.ipv4.tcp_no_metrics_save=1")
+            node.cmd(f"sysctl -qw net.ipv4.tcp_ecn={1 if args.ecn else 0}")
             # buffers de socket grandes desde o inicio: com o padrao (128 kB) a janela do
             # receptor limita a cwnd a ~44 pacotes e o buffer do gargalo nunca enche
             node.cmd(f"sysctl -qw net.ipv4.tcp_rmem='{TCP_MEM}' net.ipv4.tcp_wmem='{TCP_MEM}'")

@@ -22,5 +22,12 @@ case "$1" in
     run p6/droptail-B100 --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --duration 120 --qmon
     run p6/red-B100      --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --red --duration 120 --qmon
     run p6/droptail-B20  --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 20 --duration 120 --qmon ;;
+  extras)
+    run p4/ecn-n2-B100   --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 --red --ecn --red-min 0.3 --red-max 0.32 --red-prob 1 --stagger 15 --duration 120 --qmon
+    run p4/ecn-n3-B100   --n 3 --cc reno --rtt-ms 40 --bw 10 --buffer 100 --red --ecn --red-min 0.3 --red-max 0.32 --red-prob 1 --stagger 15 --duration 120 --qmon
+    run p6/codel-B100    --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --qdisc codel --duration 120 --qmon
+    run p6/fq_codel-B100 --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 --qdisc fq_codel --duration 120 --qmon
+    run p6/droptail-n6-B100 --n 6 --cc reno --rtt-ms 20,28,40,56,80,113 --bw 10 --buffer 100 --duration 150 --qmon
+    run p6/red-n6-B100      --n 6 --cc reno --rtt-ms 20,28,40,56,80,113 --bw 10 --buffer 100 --red --duration 150 --qmon ;;
   *) echo "grupo desconhecido: $1"; exit 1 ;;
 esac

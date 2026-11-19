@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        grupo: [p2p4, p5reno, p5cubic, p5scalable, p6]
+        grupo: [p2p4, p5reno, p5cubic, p5scalable, p6, extras]
     steps:
       - uses: actions/checkout@v4
 

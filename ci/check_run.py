@@ -7,6 +7,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
 
 
@@ -14,7 +15,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("run_dir")
     ap.add_argument("--rtt-ms", default=None, help="RTTs de propagacao esperados por fluxo")
-    ap.add_argument("--expect", choices=["red", "loss"], default=None)
+    ap.add_argument("--expect", choices=["red", "loss", "codel", "fq_codel", "ecn"], default=None)
     ap.add_argument("--min-samples", type=int, default=500)
     ap.add_argument("--min-backoffs", type=int, default=0,
                     help="minimo de reducoes de janela por fluxo (mudancas de ssthresh)")
@@ -70,6 +71,14 @@ def main() -> int:
         erros.append("RED nao esta instalado no gargalo")
     if a.expect == "loss" and "loss" not in q:
         erros.append("netem loss nao esta instalado no gargalo")
+    for kind in ("codel", "fq_codel"):
+        if a.expect == kind and f"qdisc {kind} 20:" not in q:
+            erros.append(f"{kind} nao esta instalado no gargalo")
+    if a.expect == "ecn":
+        marks = [int(m) for m in re.findall(r"(?:marked|ecn_mark) (\d+)", q)]
+        print(f"   marcas ECN no gargalo: {marks}")
+        if not marks or max(marks) == 0:
+            erros.append("nenhum pacote marcado com ECN")
     for e in erros:
         print(f"ERRO: {e}")
     return 1 if erros else 0

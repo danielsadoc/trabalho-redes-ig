@@ -61,6 +61,24 @@ jobs:
                --red --duration 30 --qmon --out dados/ci/red
           python3 ../ci/check_run.py dados/ci/red --rtt-ms 20,40,60 --expect red --min-backoffs 3
 
+      - name: CoDel e fq_codel no gargalo
+        working-directory: ig_starter
+        run: |
+          for q in codel fq_codel; do
+            sudo mn -c >/dev/null 2>&1 || true
+            sudo python3 dumbbell.py --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 \
+                 --qdisc $q --duration 30 --qmon --out dados/ci/$q
+            python3 ../ci/check_run.py dados/ci/$q --rtt-ms 20,40,60 --expect $q --min-backoffs 3
+          done
+
+      - name: ECN com limiar unico (sincronizacao forcada)
+        working-directory: ig_starter
+        run: |
+          sudo mn -c >/dev/null 2>&1 || true
+          sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 --red --ecn \
+               --red-min 0.3 --red-max 0.32 --red-prob 1 --stagger 10 --duration 40 --qmon --out dados/ci/ecn
+          python3 ../ci/check_run.py dados/ci/ecn --rtt-ms 40 --expect ecn --min-backoffs 3
+
       - name: Perda aleatoria (Parte 5)
         working-directory: ig_starter
         run: |
@@ -76,7 +94,7 @@ jobs:
           sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
                --stagger 10 --duration 60 --qmon --out dados/ci/p4
           python3 ../ci/check_run.py dados/ci/p4 --rtt-ms 40 --min-backoffs 5
-          for d in rtt red loss p4; do python3 plot_cwnd.py dados/ci/$d -o dados/ci/$d/cwnd.png; done
+          for d in rtt red codel fq_codel ecn loss p4; do python3 plot_cwnd.py dados/ci/$d -o dados/ci/$d/cwnd.png; done
 
       - name: Guardar dados e graficos
         if: always()
