@@ -1,0 +1,95 @@
+{
+  "args": {
+    "n": 6,
+    "cc": "reno",
+    "rtt_ms": "20,28,40,56,80,113",
+    "bw": 10.0,
+    "buffer": 100,
+    "qdisc": "red",
+    "red": true,
+    "ecn": false,
+    "red_min": 0.2,
+    "red_max": 0.6,
+    "red_prob": 0.1,
+    "loss": 0.0,
+    "stagger": 0.0,
+    "duration": 150.0,
+    "interval": 0.01,
+    "qmon": true,
+    "ping": false,
+    "switch": "ovsbr",
+    "out": "dados/p6/red-n6-B100",
+    "cli": false
+  },
+  "cc_por_fluxo": [
+    "reno",
+    "reno",
+    "reno",
+    "reno",
+    "reno",
+    "reno"
+  ],
+  "rtt_prop_ms_por_fluxo": [
+    20.0,
+    28.0,
+    40.0,
+    56.0,
+    80.0,
+    113.0
+  ],
+  "rtt_medido_ping_ms": {
+    "h1": 20.049,
+    "h2": 28.085,
+    "h3": 40.076,
+    "h4": 56.076,
+    "h5": 80.077,
+    "h6": 113.089
+  },
+  "flow_id_por_fluxo": {
+    "flow1": 50001,
+    "flow2": 50002,
+    "flow3": 50003,
+    "flow4": 50004,
+    "flow5": 50005,
+    "flow6": 50006
+  },
+  "interface_gargalo": "s1-eth7",
+  "comandos_tc": [
+    "tc qdisc del dev s1-eth7 root 2>/dev/null || true",
+    "tc qdisc add dev s1-eth7 root handle 1: htb default 10",
+    "tc class add dev s1-eth7 parent 1: classid 1:10 htb rate 10.0mbit",
+    "tc qdisc add dev s1-eth7 parent 1:10 handle 20: red limit 600000 min 30000 max 90000 avpkt 1500 burst 33 bandwidth 10.0mbit probability 0.1",
+    "[h1] tc qdisc del dev h1-eth0 root 2>/dev/null || true",
+    "[h1] tc qdisc add dev h1-eth0 root netem delay 20.0ms limit 100000",
+    "[h2] tc qdisc del dev h2-eth0 root 2>/dev/null || true",
+    "[h2] tc qdisc add dev h2-eth0 root netem delay 28.0ms limit 100000",
+    "[h3] tc qdisc del dev h3-eth0 root 2>/dev/null || true",
+    "[h3] tc qdisc add dev h3-eth0 root netem delay 40.0ms limit 100000",
+    "[h4] tc qdisc del dev h4-eth0 root 2>/dev/null || true",
+    "[h4] tc qdisc add dev h4-eth0 root netem delay 56.0ms limit 100000",
+    "[h5] tc qdisc del dev h5-eth0 root 2>/dev/null || true",
+    "[h5] tc qdisc add dev h5-eth0 root netem delay 80.0ms limit 100000",
+    "[h6] tc qdisc del dev h6-eth0 root 2>/dev/null || true",
+    "[h6] tc qdisc add dev h6-eth0 root netem delay 113.0ms limit 100000"
+  ],
+  "tcp_rmem_wmem": "4096 8388608 33554432",
+  "estado_hosts": {
+    "tcp_rmem_receptor": "4096\t8388608\t33554432",
+    "tcp_wmem_emissor": "4096\t8388608\t33554432",
+    "qdisc_emissor": "qdisc noqueue 0: root refcnt 2",
+    "cc_padrao": "cubic"
+  },
+  "qdisc_gargalo": "qdisc htb 1: root refcnt 5 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000\n Sent 187923577 bytes 124356 pkt (dropped 1949, overlimits 124097 requeues 0) \n backlog 0b 0p requeues 0\nqdisc red 20: parent 1:10 limit 600000b min 30000b max 90000b \n Sent 187923577 bytes 124356 pkt (dropped 1949, overlimits 1949 requeues 0) \n backlog 0b 0p requeues 0\n  marked 0 early 1949 pdrop 0 other 0 \n",
+  "kernel": "7.0.0-1017-azure",
+  "mininet": "2.3.0",
+  "iperf3": "iperf 3.16 (cJSON 1.7.15)",
+  "python": "3.12.3",
+  "loadavg_fim": [
+    7.94384765625,
+    5.5478515625,
+    2.923828125
+  ],
+  "inicio_epoch": 1795088633.2224746,
+  "data": "2026-11-19T11:46:25",
+  "commit": "f71bdad144a7f7758a8dc38b9aec825590f89a15"
+}
