@@ -398,6 +398,22 @@ Então
 Por exemplo, com $n=3$ e quatro eventos que atingem 1, 3, 1 e 2 fluxos, $\bar m=1{,}75$
 e $\hat s=0{,}375$.
 
+\paragraph{Uma armadilha: a contabilidade da janela.} Em regime, o que a janela de um
+fluxo ganha nos aumentos é, em média, o que ela perde nas reduções. Para o Reno isso dá
+\begin{equation}
+x_r\,\nu_r\;\approx\;\frac{2\kappa_r}{T_r^2},
+\label{eq:balanco}
+\end{equation}
+em que $\nu_r$ é o número de reduções de janela por segundo do fluxo $r$ e $\kappa_r$ é a
+razão entre a janela média e a janela no instante do corte ($3/4$ num dente de serra
+regular). No Linux a igualdade não é exata, mas o erro é um fator parecido para todos
+os fluxos, e é isso que importa. Se $\kappa_r$ for parecido entre os fluxos, a vazão e a
+taxa de reduções ficam amarradas: medir como $\nu_r$ varia com $x_r$ já determina como $x_r$ varia com $T_r$,
+\emph{qualquer que seja o padrão de perdas} (Apêndice~\ref{app:deriv}). Ou seja, essa
+relação sozinha não testa o modelo de sincronização. O que o modelo acrescenta é prever
+$\alpha_{\rm ef}$ a partir de $\hat s$, que é medido de outra forma, contando quantos
+fluxos cada evento atinge. É esse o teste da Parte 6.
+
 \subsection{O que a teoria \emph{não} cobre}
 As previsões acima vêm de um modelo idealizado, sem atraso de realimentação. Ficam de
 fora: (a) estabilidade com atraso; (b) a dinâmica completa do CUBIC, que tem um estado
@@ -638,6 +654,19 @@ seria $0{,}49$. O que você mede? Por que o CUBIC não precisa seguir essa previ
 \item \inter\ Repita com $n=3$ e $n=4$, e com $B=20$. O que acontece com a fração de
 perdas que atingem todos os fluxos ao mesmo tempo? Como isso afeta as previsões (i) e
 (iii)?
+\item \inter\ \textbf{Qual distância é a certa?} Nas amostras imediatamente anteriores a
+cada perda, calcule três distâncias até o ideal $x^\star$: a euclidiana
+$\|x-x^\star\|^2$, a divergência de Kullback--Leibler
+$\sum_r[x^\star_r\log(x^\star_r/x_r)-x^\star_r+x_r]$ e a de Itakura--Saito
+$\Dis(x^\star\|x)$. Em que fração dos ciclos cada uma \emph{aumenta}? Qual fica mais
+perto de ser sempre decrescente? (No modelo fluido, $\Dis(x^\star\|x)$ nunca aumenta;
+veja o Apêndice~\ref{app:deriv}.)
+\item \avancado\ \textbf{Sincronização forçada com ECN.} Com
+\texttt{-{}-red -{}-ecn -{}-red-min 0.3 -{}-red-max 0.32 -{}-red-prob 1}, o roteador
+marca \emph{todos} os pacotes quando a fila média passa de cerca de 30\% do buffer, em
+vez de descartar alguns: todos os fluxos reduzem a janela no mesmo RTT. Repita o cenário
+de 4.1 assim e compare $\hat s$ e a razão $\mathcal U_{m+1}/\mathcal U_m$ com o
+drop-tail. A previsão $\beta^2$ fica mais precisa quando a sincronização é forçada?
 \end{enumerate}
 
 \paragraph{Entregáveis obrigatórios:}
@@ -709,17 +738,36 @@ janela de cada fluxo, agrupe-as em eventos com uma janela $\Delta$ e calcule $\b
 Mostre como $\hat s$ depende de $\Delta$ (teste $\Delta$ de 0,5 a 3 RTTs) e justifique sua
 escolha.
 \item \avancado\ Estime $\hat\alpha_{\rm ef}$ a partir de \eqref{eq:rttbias}: ajuste
-$\log x_r$ contra $\log\bar T_r$; a inclinação é $-2/\hat\alpha_{\rm ef}$.
+$\log x_r$ contra $\log\bar T_r$; a inclinação é $-2/\hat\alpha_{\rm ef}$. Reporte também
+o $R^2$ do ajuste: um $R^2$ baixo quer dizer que a vazão não segue uma lei de potência
+do RTT, e aí $\hat\alpha_{\rm ef}$ perde o sentido.
+\item \avancado\ \textbf{A contabilidade da janela.} Para cada fluxo, meça a taxa de
+reduções $\nu_r$ (mudanças de \texttt{ssthresh} por segundo) e o fator $\kappa_r$
+(janela média dividida pela janela média nos instantes de corte), e confira
+\eqref{eq:balanco}: a razão $x_r\nu_r T_r^2/(2\kappa_r)$ deve ser parecida entre os
+fluxos, mesmo que não dê exatamente 1. Por que ela não dá 1 no Linux? (Pense no PRR, em
+como o \texttt{ssthresh} é calculado e no uso do \texttt{srtt} médio.) Calcule $\gamma$, a inclinação de $\log\nu_r$ contra $\log x_r$, e
+compare três números: $1+\gamma$, a inclinação de $\log(1/\bar T_r^2)$ contra $\log x_r$, e
+o $\hat\alpha_{\rm ef}$ de 6.2. Por que os dois primeiros quase coincidem mesmo quando o
+terceiro não bate? (Dica: o que acontece com a inclinação quando você troca os eixos de
+uma regressão com $R^2<1$? Veja o Apêndice~\ref{app:deriv}.) Conclua por que a relação
+$\alpha_{\rm ef}=1+\gamma$ não testa o modelo de sincronização, e o gráfico de 6.4 testa.
 \item \avancado\ Faça $\hat s$ variar e construa o gráfico de $\hat\alpha_{\rm ef}$
 contra $\hat s$, com a curva teórica \eqref{eq:interp} sobreposta. Maneiras de mexer na
 sincronização:
 \begin{itemize}
 \item tamanho do buffer $B$ (de $0{,}25$ a $4$ BDPs);
-\item disciplina de fila: drop-tail (padrão) $\times$ RED (\texttt{dumbbell.py -{}-red});
-\item número de fluxos $n\in\{3,5,10\}$ (com RTTs log-espaçados);
+\item disciplina de fila: drop-tail (padrão) $\times$ RED (\texttt{-{}-red}) $\times$
+CoDel (\texttt{-{}-qdisc codel});
+\item número de fluxos $n\in\{3,6,10\}$, com RTTs log-espaçados. Ao aumentar $n$, compare
+manter $B$ fixo com manter $B/n$ fixo: com $B$ fixo, cada fluxo fica com uma parte menor
+do buffer, e isso por si só muda $\hat s$;
 \item uma pequena perda aleatória adicional (que cria eventos individuais);
 \item tráfego de fundo com fluxos curtos (por exemplo, downloads periódicos com \texttt{curl}).
 \end{itemize}
+\item \avancado\ Repita com \texttt{-{}-qdisc fq\_codel}, que mantém uma fila por fluxo e
+os atende em rodízio. Onde seus pontos caem? Por que o modelo \eqref{eq:interp}, que
+supõe uma fila única compartilhada, não se aplica a esse caso?
 \item \avancado\ Pela fórmula \eqref{eq:interp}, com $n=10$ e $s=0{,}1$ já se tem
 $\alpha_{\rm ef}\approx1{,}47$, quase o ponto médio; com $n=30$ e $s=0{,}1$,
 $\alpha_{\rm ef}\approx1{,}23$, perto do regime sincronizado. Seus dados confirmam que o
@@ -730,8 +778,8 @@ $\mathrm{RTT}\cdot C/\sqrt N$?
 \end{enumerate}
 
 \paragraph{Gráfico obrigatório:} \path{p6-alpha-vs-s.png}: $\hat\alpha_{\rm ef}$
-contra $\hat s$, com barras de erro nos dois eixos e a curva teórica para cada $n$
-usado. Este é o gráfico que mais interessa para o artigo.
+contra $\hat s$, com barras de erro nos dois eixos, o $R^2$ de cada ajuste e a curva
+teórica para cada $n$ usado. Este é o gráfico que mais interessa para o artigo.
 
 % =====================================================================
 \section{Parte 7: Dois gargalos \texorpdfstring{\avancado}{}}
@@ -804,6 +852,11 @@ simulador simples em Python ou como qdisc, e meça $\alpha_{\rm ef}$.
 procure empiricamente uma quantidade transversal que seja monótona de ciclo a ciclo
 (com um gargalo, $\mathcal U$ tem esse papel). Candidata natural: $\mathcal U$ com
 $\mu=x^\star$.
+\item \textbf{Invariância de escala.} Na teoria, multiplicar a capacidade por 10, com o
+buffer medido em BDPs, não muda as frações $x_r/\sum_s x_s$, a razão por ciclo nem
+$\hat s$. Repita as Partes 4 e 6 com $C=10$ e $C=100$\,Mb/s. O que muda no Linux (cwnd
+inteira, janela inicial, TSO, CPU da VM) e a partir de que escala? É um teste barato que
+separa o que é do protocolo do que é da implementação.
 \end{enumerate}
 
 % =====================================================================
@@ -1079,6 +1132,23 @@ $x'=\beta x+(1-\beta)x^\star$: o desvio $x-x^\star$ encolhe por $\beta$ a cada c
 da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.4), logo
 $\mathcal U_{m+1}/\mathcal U_m\to\beta^2$.
 
+\paragraph{Contabilidade da janela.} No Reno, entre reduções a janela cresce
+$1$ pacote por RTT, isto é, $dw/dt=1/T_r$; cada redução retira metade da janela. Em
+regime a janela não cresce nem diminui em média, então $1/T_r=\nu_r\,\overline{w}_{\rm
+corte}/2$, em que $\overline{w}_{\rm corte}$ é a janela média nos cortes. Com
+$x_r=\overline{w}/T_r$ e $\kappa_r=\overline{w}/\overline{w}_{\rm corte}$, vem
+$x_r\nu_r=2\kappa_r/T_r^2$, que é \eqref{eq:balanco}. Num dente de serra regular, de $W/2$
+a $W$, $\kappa_r=3/4$. Se $\kappa_r$ é igual para todos os fluxos, então
+$\log(1/T_r^2)=\log x_r+\log\nu_r+\text{const}$, e a regressão de mínimos quadrados dá
+exatamente
+\[
+\text{inclinação}\big(\log(1/T^2)\sim\log x\big)=1+\text{inclinação}\big(\log\nu\sim\log x\big)=1+\gamma ,
+\]
+para \emph{qualquer} padrão de perdas. Já o ajuste na outra direção, de $\log x$ contra
+$\log(1/T^2)$, tem inclinação $R^2/(1+\gamma)$, e daí $\hat\alpha_{\rm ef}\approx(1+\gamma)/R^2$:
+quando a vazão não segue bem uma lei de potência ($R^2$ baixo), $\hat\alpha_{\rm ef}$
+explode, mesmo com a contabilidade valendo.
+
 \paragraph{Lyapunov.} No modelo fluido do AIMD ($k=0$, $l=1$), com um preço comum
 $q=q(X)$ não decrescente na vazão total $X=\sum_r x_r$, $\dot x_r=a_r-b\,q\,x_r^{2}$. No
 equilíbrio, $a_r=b\,q^\star x_r^{\star2}$. Com
@@ -1133,8 +1203,12 @@ nas interfaces dos hosts e do gargalo:
 
 \paragraph{Filas.} Inspecione a qdisc real com \texttt{tc -s qdisc show dev s1-eth1}.
 O \texttt{dumbbell.py -{}-red} instala RED com limiares \texttt{-{}-red-min} e
-\texttt{-{}-red-max} (frações do buffer) e probabilidade máxima \texttt{-{}-red-prob}; os
-comandos \texttt{tc} usados ficam no \texttt{metadata.json}.
+\texttt{-{}-red-max} (frações do buffer) e probabilidade máxima \texttt{-{}-red-prob};
+\texttt{-{}-qdisc codel} e \texttt{-{}-qdisc fq\_codel} usam os valores padrão do Linux
+(alvo de 5\,ms). Com \texttt{-{}-ecn}, a fila marca em vez de descartar, e o ECN do TCP é
+ligado em todos os hosts; as marcas aparecem como \texttt{marked} (RED) ou
+\texttt{ecn\_mark} (CoDel) no \texttt{tc -s}. Os comandos \texttt{tc} usados ficam no
+\texttt{metadata.json}.
 
 \paragraph{Detectar perdas.} Uma mudança de \texttt{ssthresh} marca uma redução de
 janela (a cwnd em si cai gradualmente, por causa do PRR). Descarte reduções
@@ -1152,7 +1226,7 @@ Reduza $C$, reduza $n$ ou aumente os recursos da VM.
 Arquivo & O que faz\\
 \midrule
 \texttt{dumbbell.py} & Topologia haltere com $n$ emissores, RTTs por fluxo, gargalo com
-$C$, $B$, RED e perda aleatória opcionais; inicia os fluxos escalonados, os monitores de
+$C$ e $B$, fila drop-tail, RED, CoDel ou fq\_codel, ECN e perda aleatória opcionais; inicia os fluxos escalonados, os monitores de
 cwnd e grava CSVs e \texttt{metadata.json}. \texttt{sudo python3 dumbbell.py -h} lista as
 opções.\\
 \texttt{cwnd\_monitor.py} & Amostra \texttt{ss -tin} no host emissor e grava
