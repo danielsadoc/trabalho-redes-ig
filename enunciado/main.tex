@@ -29,7 +29,7 @@
 \newcommand{\dataPreliminar}{16 (quarta-feira) e 18 (sexta-feira) de dezembro de 2026}
 \newcommand{\dataFinal}{21 de dezembro de 2026 (segunda-feira)}
 \newcommand{\dataNotas}{4 de janeiro de 2027}
-\newcommand{\tamanhoGrupo}{3}
+\newcommand{\tamanhoGrupo}{5}
 \newcommand{\linkCodigo}{https://tinyurl.com/redes20262trabalho}
 
 % --------------------------------------------------------------------- cores e marcadores de nivel
@@ -74,7 +74,7 @@
 
 \title{\bfseries Trabalho de Redes \semestre{} -- IC/UFRJ\\[4pt]
 \large Bufferbloat, controle de congestionamento e\\ a geometria da informação do AIMD}
-\author{Prof. Daniel Menasché}
+\author{Prof. Daniel Menasché e Prof. Heudson Mirandola}
 \date{}
 
 \begin{document}
@@ -99,6 +99,10 @@ numérica; até onde sabemos, \textbf{nunca foram testadas contra uma pilha TCP 
 \avancado & exige desenho experimental próprio e interpretação cuidadosa.\\
 \pesquisa & problemas em aberto; bons resultados podem entrar em artigo (Seção~\ref{sec:coautoria}).
 \end{tabularx}
+
+\smallskip
+A parte obrigatória (Partes 1 a 6) vale 10 pontos. A Parte 7 (bônus e extras) e a
+Parte 8 (trilha de pesquisa) são opcionais.
 \end{caixa}
 
 \section*{Entrega}
@@ -200,7 +204,7 @@ Applications}, Springer, 2016, Caps.~1--2.
 Esta seção explica o que vamos medir e o que esperar. Cada fórmula vem com uma leitura
 em português, e o \texttt{ig\_metrics.py} já calcula tudo. A teoria geral e as
 demonstrações estão nos Apêndices~\ref{app:teoria} e~\ref{app:deriv}: leia-os se tiver
-curiosidade, mas eles não são necessários para fazer as Partes 2 a 5.
+curiosidade, mas eles não são necessários para a parte obrigatória do trabalho.
 
 \begin{center}
 \small
@@ -317,7 +321,7 @@ quarto a cada ciclo (no CUBIC do Linux, $\beta=0{,}7$);
 $n(\beta-\log\beta-1)$: é o TCP sondando a banda disponível.
 \end{enumerate}
 Por que $\beta^2$ e não $\beta$? Porque $\mathcal U$ se comporta como o quadrado de uma
-distância (Exercício 3.4).
+distância (Exercício 3.3).
 
 \subsection{Janela e perda: o expoente \texorpdfstring{$\alpha$}{alfa}}
 
@@ -398,22 +402,6 @@ Então
 Por exemplo, com $n=3$ e quatro eventos que atingem 1, 3, 1 e 2 fluxos, $\bar m=1{,}75$
 e $\hat s=0{,}375$.
 
-\paragraph{Uma armadilha: a contabilidade da janela.} Em regime, o que a janela de um
-fluxo ganha nos aumentos é, em média, o que ela perde nas reduções. Para o Reno isso dá
-\begin{equation}
-x_r\,\nu_r\;\approx\;\frac{2\kappa_r}{T_r^2},
-\label{eq:balanco}
-\end{equation}
-em que $\nu_r$ é o número de reduções de janela por segundo do fluxo $r$ e $\kappa_r$ é a
-razão entre a janela média e a janela no instante do corte ($3/4$ num dente de serra
-regular). No Linux a igualdade não é exata, mas o erro é um fator parecido para todos
-os fluxos, e é isso que importa. Se $\kappa_r$ for parecido entre os fluxos, a vazão e a
-taxa de reduções ficam amarradas: medir como $\nu_r$ varia com $x_r$ já determina como $x_r$ varia com $T_r$,
-\emph{qualquer que seja o padrão de perdas} (Apêndice~\ref{app:deriv}). Ou seja, essa
-relação sozinha não testa o modelo de sincronização. O que o modelo acrescenta é prever
-$\alpha_{\rm ef}$ a partir de $\hat s$, que é medido de outra forma, contando quantos
-fluxos cada evento atinge. É esse o teste da Parte 6.
-
 \subsection{O que a teoria \emph{não} cobre}
 As previsões acima vêm de um modelo idealizado, sem atraso de realimentação. Ficam de
 fora: (a) estabilidade com atraso; (b) a dinâmica completa do CUBIC, que tem um estado
@@ -489,7 +477,7 @@ Ubuntu 24.04, troque \texttt{host=CPULimitedHost} por \texttt{host=Host} no
 
 % =====================================================================
 \section{Parte 2: Bufferbloat e o dente de serra do Reno \texorpdfstring{\basico}{}}
-\pontos{1,5 ponto}
+\pontos{2,0 pontos}
 \label{sec:bufferbloat}
 
 Esta parte é o pré-requisito prático de todo o resto: montar uma topologia no Mininet e
@@ -560,10 +548,6 @@ Estes exercícios garantem que vocês sabem calcular as quantidades que serão m
 Respostas curtas, com as contas.
 
 \begin{enumerate}[label=3.\arabic*]
-\item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela do Apêndice~\ref{app:teoria} as
-linhas de IIAD $(k,l)=(1,0)$, SQRT $(k,l)=(1/2,1/2)$ e do binomial $(k,l)=(1,1)$ que o
-\texttt{simula\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
-“amigáveis ao TCP”? Qual é o mais justo no sentido de $\alpha$?
 \item \basico\ Confira os números do exemplo da Seção~\ref{sec:primer} ($x=(8,2)$ e
 $x=(4,1)$, com $c=10$), à mão e com o \texttt{ig\_metrics.py}. Depois mostre que
 $\mathcal U(\lambda x)=\mathcal U(x)$ para todo $\lambda>0$ e conclua que uma perda que
@@ -579,14 +563,11 @@ não $\beta$.
 do Apêndice~\ref{app:teoria}. Escreva um teste (\texttt{test\_ig\_metrics.py}) que verifica a
 identidade \eqref{eq:pitagorasA} em 1000 pontos aleatórios com erro $<10^{-10}$, para
 $\mu=\ones$ e para $\mu=(1,1/4,1/9)$, e que verifica $\mathcal U(\lambda x)=\mathcal U(x)$.
-\item \inter\ Rode \texttt{simula\_aimd.py}. Explique, com suas palavras, o que o item 3
-da saída verifica e por que a razão por ciclo começa em $\approx0{,}33$ e converge para
-$0{,}25$.
 \end{enumerate}
 
 % =====================================================================
 \section{Parte 4: Medindo a decomposição pitagórica \texorpdfstring{\inter}{}}
-\pontos{2,5 pontos}
+\pontos{3,0 pontos}
 \label{sec:pitagoras}
 
 \begin{figure}[htbp]
@@ -615,7 +596,7 @@ os atrasos de acesso são iguais; na Parte 6 eles diferem.}
 
 \paragraph{Montagem.} Use a topologia da Figura~\ref{fig:dumbbell} com $n$ emissores
 h1,\dots,h$n$ e um receptor r. Valores de referência: $C=10$\,Mb/s, RTT de propagação
-de 40\,ms \emph{igual} para todos os fluxos, $B\in\{20,100\}$ pacotes no buffer do
+de 40\,ms \emph{igual} para todos os fluxos, $B=100$ pacotes no buffer do
 enlace s1$\to$s2 (só nele). Cada emissor abre \emph{um} fluxo iperf3 para r, com o
 algoritmo escolhido por fluxo (\texttt{iperf3 -C reno}); o \texttt{dumbbell.py} já faz
 isso. Os fluxos começam
@@ -649,33 +630,13 @@ $\mathcal U_{m+1}/\mathcal U_m$ e compare com $\beta^2=0{,}25$. Use só os ciclo
 todos os fluxos saíram do \emph{slow start} e antes de $\mathcal U$ cair no nível do
 ruído de medição (como a cwnd é inteira, para $n=2$ esse piso é da ordem de
 $(2\bar w)^{-2}$). Quantos ciclos limpos você conseguiu?
-\item \inter\ Repita para CUBIC. Se o CUBIC fosse um AIMD com $\beta=0{,}7$, a razão
-seria $0{,}49$. O que você mede? Por que o CUBIC não precisa seguir essa previsão?
-\item \inter\ Repita com $n=3$ e $n=4$, e com $B=20$. O que acontece com a fração de
-perdas que atingem todos os fluxos ao mesmo tempo? Como isso afeta as previsões (i) e
-(iii)?
-\item \inter\ \textbf{Qual distância é a certa?} Nas amostras imediatamente anteriores a
-cada perda, calcule três distâncias até o ideal $x^\star$: a euclidiana
-$\|x-x^\star\|^2$, a divergência de Kullback--Leibler
-$\sum_r[x^\star_r\log(x^\star_r/x_r)-x^\star_r+x_r]$ e a de Itakura--Saito
-$\Dis(x^\star\|x)$. Em que fração dos ciclos cada uma \emph{aumenta}? Qual fica mais
-perto de ser sempre decrescente? (No modelo fluido, $\Dis(x^\star\|x)$ nunca aumenta;
-veja o Apêndice~\ref{app:deriv}.)
-\item \avancado\ \textbf{Dá para forçar a sincronização?} Com
-\texttt{-{}-red -{}-ecn -{}-red-min 0.3 -{}-red-max 0.32 -{}-red-prob 1}, o roteador
-marca com ECN \emph{todos} os pacotes enquanto a fila média estiver acima de cerca de 30\%
-do buffer, em vez de descartar. A intuição é que todos os fluxos reduziriam a janela no
-mesmo RTT. Repita o cenário de 4.1 assim e compare $\hat s$ e a razão
-$\mathcal U_{m+1}/\mathcal U_m$ com o drop-tail. A intuição se confirma? Se não, explique
-por quê. (Pense na média móvel que o RED usa, em quanto tempo a fila média fica acima do
-limiar e em quantas vezes cada fluxo reduz a janela nesse intervalo.)
 \end{enumerate}
 
 \paragraph{Entregáveis obrigatórios:}
 \begin{itemize}
-\item \path{p4-cwnd-reno-n2-B100.png}, \path{p4-decomp-reno-n2-B100.png} e \path{p4-decomp-cubic-n2-B100.png};
-\item uma tabela com a razão média por ciclo (com IC 95\%) para cada combinação
-(algoritmo, $n$, $B$) testada.
+\item \path{p4-cwnd-reno-n2-B100.png} e \path{p4-decomp-reno-n2-B100.png};
+\item a razão média por ciclo (com IC 95\%, de pelo menos 5 repetições) para Reno com
+$n=2$ e $B=100$.
 \end{itemize}
 
 % =====================================================================
@@ -699,24 +660,13 @@ sete valores log-espaçados entre $2\times10^{-4}$ e $2\times10^{-2}$.
 $\log p$. Ajuste uma reta e estime $\hat\alpha=-1/\text{inclinação}$, com intervalo de
 confiança (repita cada ponto pelo menos 5 vezes). Compare com a lei de Mathis
 $\bar w\approx1{,}22/\sqrt p$.
-\item \inter\ Repita para Scalable TCP (\texttt{-C scalable}). Leia o código-fonte de
-\texttt{tcp\_scalable.c} do seu kernel, identifique a fração retida $\beta$ e o
-incremento, e explique por que ele só é MIMD ($\alpha=1$) quando a janela passa de
-\texttt{TCP\_SCALABLE\_AI\_CNT} pacotes (100 nos kernels recentes). Abaixo disso, que
-$\alpha$ você espera? Escolha $p$ e o RTT para ver os dois regimes. Dica: no regime
-MIMD a janela fica perto de $0{,}08/p$ pacotes, e a capacidade do gargalo não pode
-limitar a vazão (com $p=2\times10^{-4}$ e RTT de 100\,ms, isso já passa de 45\,Mb/s).
-\item \inter\ Repita para CUBIC. O CUBIC do Linux tem uma região “amigável ao TCP” em
-que se comporta como um AIMD; fora dela, a previsão é $\hat\alpha=4/3$. Você deve ver
-\emph{dois regimes}. Encontre experimentalmente o valor de $p$ (e de RTT) onde ocorre a
-transição e compare com a fórmula da RFC~9438.
 \item \inter\ Quantos eventos de perda cada ponto contém? Discuta o compromisso entre
 duração do experimento e precisão de $\hat\alpha$. (O \texttt{simula\_aimd.py} usa
 $2\times10^5$ RTTs por ponto; qual a duração equivalente no seu experimento?)
 \end{enumerate}
 
-\paragraph{Gráfico obrigatório:} \path{p5-scaling.png}, com os três algoritmos no
-mesmo gráfico log-log, as retas teóricas e as barras de erro.
+\paragraph{Gráfico obrigatório:} \path{p5-scaling.png}, com o Reno em escala log-log,
+a reta teórica e as barras de erro.
 
 % =====================================================================
 \section{Parte 6: Sincronização e justiça entre RTTs \texorpdfstring{\avancado}{}}
@@ -739,10 +689,100 @@ $\hat s$ de \eqref{eq:shat}: detecte as reduções de
 janela de cada fluxo, agrupe-as em eventos com uma janela $\Delta$ e calcule $\bar m$.
 Mostre como $\hat s$ depende de $\Delta$ (teste $\Delta$ de 0,5 a 3 RTTs) e justifique sua
 escolha.
-\item \avancado\ Estime $\hat\alpha_{\rm ef}$ a partir de \eqref{eq:rttbias}: ajuste
+\item \inter\ Estime $\hat\alpha_{\rm ef}$ a partir de \eqref{eq:rttbias}: ajuste
 $\log x_r$ contra $\log\bar T_r$; a inclinação é $-2/\hat\alpha_{\rm ef}$. Reporte também
 o $R^2$ do ajuste: um $R^2$ baixo quer dizer que a vazão não segue uma lei de potência
 do RTT, e aí $\hat\alpha_{\rm ef}$ perde o sentido.
+\item \avancado\ Meça três configurações, com pelo menos 5 repetições cada: drop-tail com
+$B=100$, drop-tail com $B=20$ e RED com $B=100$ (\texttt{-{}-red}). Ponha os três pontos
+$(\hat s,\hat\alpha_{\rm ef})$ num gráfico com a curva teórica \eqref{eq:interp} para
+$n=3$. Os pontos seguem a curva? Onde não seguem, o que pode explicar a diferença? (Veja
+“O que a teoria não cobre”, na Seção~\ref{sec:primer}.)
+\end{enumerate}
+
+\paragraph{Gráfico obrigatório:} \path{p6-alpha-vs-s.png}: os três pontos
+$(\hat s,\hat\alpha_{\rm ef})$, com barras de erro nos dois eixos, o $R^2$ de cada ajuste e
+a curva teórica para $n=3$. Este é o gráfico que mais interessa para o artigo.
+
+% =====================================================================
+\section{Parte 7: Bônus e extras \texorpdfstring{\avancado}{}}
+\pontos{bônus de até 2,0 pontos, somados com a Parte 8}
+\label{sec:bonus}
+
+Tudo nesta parte é opcional. Cada item bem feito vale até 0,5 ponto de bônus; somados com a
+trilha de pesquisa (Parte 8), os bônus valem até 2,0 pontos, e a nota final continua
+limitada a 10. Os itens estão agrupados pela parte do trabalho que estendem: escolham os que
+mais interessarem ao grupo.
+
+\subsection*{Extensões da Parte 3}
+\begin{enumerate}[label=B\arabic*,series=bonus]
+\item \basico\ Usando $\alpha=k+l+1$, acrescente à tabela do Apêndice~\ref{app:teoria} as
+linhas de IIAD $(k,l)=(1,0)$, SQRT $(k,l)=(1/2,1/2)$ e do binomial $(k,l)=(1,1)$ que o
+\texttt{simula\_aimd.py} testa. Quais têm o mesmo $\alpha$ do Reno? Por que isso os torna
+“amigáveis ao TCP”? Qual é o mais justo no sentido de $\alpha$?
+\item \inter\ Rode \texttt{simula\_aimd.py}. Explique, com suas palavras, o que o item 3
+da saída verifica e por que a razão por ciclo começa em $\approx0{,}33$ e converge para
+$0{,}25$.
+\end{enumerate}
+
+\subsection*{Extensões da Parte 4}
+\begin{enumerate}[resume*=bonus]
+\item \inter\ Repita a pergunta 4.4 para CUBIC. Se o CUBIC fosse um AIMD com $\beta=0{,}7$, a razão
+seria $0{,}49$. O que você mede? Por que o CUBIC não precisa seguir essa previsão?
+\item \inter\ Repita a Parte 4 com $n=3$ e $n=4$, e com $B=20$. O que acontece com a fração de
+perdas que atingem todos os fluxos ao mesmo tempo? Como isso afeta as previsões (i) e
+(iii)?
+\item \inter\ \textbf{Qual distância é a certa?} Nos dados da Parte 4, nas amostras imediatamente anteriores a
+cada perda, calcule três distâncias até o ideal $x^\star$: a euclidiana
+$\|x-x^\star\|^2$, a divergência de Kullback--Leibler
+$\sum_r[x^\star_r\log(x^\star_r/x_r)-x^\star_r+x_r]$ e a de Itakura--Saito
+$\Dis(x^\star\|x)$. Em que fração dos ciclos cada uma \emph{aumenta}? Qual fica mais
+perto de ser sempre decrescente? (No modelo fluido, $\Dis(x^\star\|x)$ nunca aumenta;
+veja o Apêndice~\ref{app:deriv}.)
+\item \avancado\ \textbf{Dá para forçar a sincronização?} Com
+\texttt{-{}-red -{}-ecn -{}-red-min 0.3 -{}-red-max 0.32 -{}-red-prob 1}, o roteador
+marca com ECN \emph{todos} os pacotes enquanto a fila média estiver acima de cerca de 30\%
+do buffer, em vez de descartar. A intuição é que todos os fluxos reduziriam a janela no
+mesmo RTT. Repita o cenário de 4.1 assim e compare $\hat s$ e a razão
+$\mathcal U_{m+1}/\mathcal U_m$ com o drop-tail. A intuição se confirma? Se não, explique
+por quê. (Pense na média móvel que o RED usa, em quanto tempo a fila média fica acima do
+limiar e em quantas vezes cada fluxo reduz a janela nesse intervalo.)
+\end{enumerate}
+
+\subsection*{Extensões da Parte 5}
+\begin{enumerate}[resume*=bonus]
+\item \inter\ Repita a pergunta 5.1 para Scalable TCP (\texttt{-C scalable}). Leia o código-fonte de
+\texttt{tcp\_scalable.c} do seu kernel, identifique a fração retida $\beta$ e o
+incremento, e explique por que ele só é MIMD ($\alpha=1$) quando a janela passa de
+\texttt{TCP\_SCALABLE\_AI\_CNT} pacotes (100 nos kernels recentes). Abaixo disso, que
+$\alpha$ você espera? Escolha $p$ e o RTT para ver os dois regimes. Dica: no regime
+MIMD a janela fica perto de $0{,}08/p$ pacotes, e a capacidade do gargalo não pode
+limitar a vazão (com $p=2\times10^{-4}$ e RTT de 100\,ms, isso já passa de 45\,Mb/s).
+\item \inter\ Repita a pergunta 5.1 para CUBIC e ponha os três algoritmos no mesmo gráfico. O CUBIC do Linux tem uma região “amigável ao TCP” em
+que se comporta como um AIMD; fora dela, a previsão é $\hat\alpha=4/3$. Você deve ver
+\emph{dois regimes}. Encontre experimentalmente o valor de $p$ (e de RTT) onde ocorre a
+transição e compare com a fórmula da RFC~9438.
+\end{enumerate}
+
+\subsection*{Extensões da Parte 6}
+
+\paragraph{Uma armadilha: a contabilidade da janela.} Em regime, o que a janela de um
+fluxo ganha nos aumentos é, em média, o que ela perde nas reduções. Para o Reno isso dá
+\begin{equation}
+x_r\,\nu_r\;\approx\;\frac{2\kappa_r}{T_r^2},
+\label{eq:balanco}
+\end{equation}
+em que $\nu_r$ é o número de reduções de janela por segundo do fluxo $r$ e $\kappa_r$ é a
+razão entre a janela média e a janela no instante do corte ($3/4$ num dente de serra
+regular). No Linux a igualdade não é exata, mas o erro é um fator parecido para todos
+os fluxos, e é isso que importa. Se $\kappa_r$ for parecido entre os fluxos, a vazão e a
+taxa de reduções ficam amarradas: medir como $\nu_r$ varia com $x_r$ já determina como $x_r$ varia com $T_r$,
+\emph{qualquer que seja o padrão de perdas} (Apêndice~\ref{app:deriv}). Ou seja, essa
+relação sozinha não testa o modelo de sincronização. O que o modelo acrescenta é prever
+$\alpha_{\rm ef}$ a partir de $\hat s$, que é medido de outra forma, contando quantos
+fluxos cada evento atinge. É esse o teste da Parte 6.
+
+\begin{enumerate}[resume*=bonus]
 \item \avancado\ \textbf{A contabilidade da janela.} Para cada fluxo, meça a taxa de
 reduções $\nu_r$ (mudanças de \texttt{ssthresh} por segundo) e o fator $\kappa_r$
 (janela média dividida pela janela média nos instantes de corte), e confira
@@ -753,8 +793,8 @@ compare três números: $1+\gamma$, a inclinação de $\log(1/\bar T_r^2)$ contr
 o $\hat\alpha_{\rm ef}$ de 6.2. Por que os dois primeiros quase coincidem mesmo quando o
 terceiro não bate? (Dica: o que acontece com a inclinação quando você troca os eixos de
 uma regressão com $R^2<1$? Veja o Apêndice~\ref{app:deriv}.) Conclua por que a relação
-$\alpha_{\rm ef}=1+\gamma$ não testa o modelo de sincronização, e o gráfico de 6.4 testa.
-\item \avancado\ Faça $\hat s$ variar e construa o gráfico de $\hat\alpha_{\rm ef}$
+$\alpha_{\rm ef}=1+\gamma$ não testa o modelo de sincronização, e o gráfico da pergunta 6.3 testa.
+\item \avancado\ Amplie o gráfico da pergunta 6.3. Faça $\hat s$ variar e construa o gráfico de $\hat\alpha_{\rm ef}$
 contra $\hat s$, com a curva teórica \eqref{eq:interp} sobreposta. Maneiras de mexer na
 sincronização:
 \begin{itemize}
@@ -779,19 +819,13 @@ efetivamente dessincronizadas no seu experimento? O que isso diz sobre a regra
 $\mathrm{RTT}\cdot C/\sqrt N$?
 \end{enumerate}
 
-\paragraph{Gráfico obrigatório:} \path{p6-alpha-vs-s.png}: $\hat\alpha_{\rm ef}$
-contra $\hat s$, com barras de erro nos dois eixos, o $R^2$ de cada ajuste e a curva
-teórica para cada $n$ usado. Este é o gráfico que mais interessa para o artigo.
-
-% =====================================================================
-\section{Parte 7: Dois gargalos \texorpdfstring{\avancado}{}}
-\pontos{1,0 ponto}
+\subsection*{Dois gargalos}
 \label{sec:doisgargalos}
 
 O equilíbrio $\alpha$-justo e a função de Lyapunov $\Dis(x^\star\|x)$ do modelo fluido
 (Apêndice~\ref{app:deriv}) valem em qualquer topologia, não só com um gargalo: o ótimo
 passa a maximizar $\sum_r U(x_r)$ sujeito a uma restrição de capacidade por enlace.
-Esta parte testa isso na rede da
+Este bônus testa isso na rede da
 Figura~\ref{fig:parking}, com os atrasos de acesso ajustados para que os três fluxos
 tenham o mesmo RTT de propagação. Monte a topologia adaptando o \texttt{dumbbell.py}
 (classe da topologia e comandos \texttt{tc} dos dois gargalos).
@@ -813,7 +847,7 @@ tenham o mesmo RTT de propagação. Monte a topologia adaptando o \texttt{dumbbe
 \label{fig:parking}
 \end{figure}
 
-\begin{enumerate}[label=7.\arabic*]
+\begin{enumerate}[resume*=bonus]
 \item \inter\ Calcule a alocação ótima para $\alpha=1$ (justiça proporcional),
 $\alpha=2$ e $\alpha\to\infty$ (max-min). Para conferir: com $\alpha=2$,
 $x^\star\approx(2{,}43;\ 7{,}57;\ 2{,}57)$\,Mb/s.
@@ -826,7 +860,7 @@ atraso.
 
 % =====================================================================
 \section{Parte 8: Trilha de pesquisa \texorpdfstring{\pesquisa}{}}
-\pontos{bônus de até 2,0 pontos}
+\pontos{bônus, somado com a Parte 7}
 \label{sec:pesquisa}
 
 Os itens abaixo são problemas em aberto. Não há resposta conhecida; um resultado
@@ -913,18 +947,18 @@ Submeta via Google Classroom: PDF e imagens como arquivos isolados, e o código 
 Parte & Nível & Pontos\\
 \midrule
 1. Configuração & \basico & pré-requisito\\
-2. Bufferbloat e dente de serra & \basico & 1,5\\
+2. Bufferbloat e dente de serra & \basico & 2,0\\
 3. Aquecimento & \basico\ \inter & 1,5\\
-4. Decomposição pitagórica & \inter & 2,5\\
+4. Decomposição pitagórica & \inter & 3,0\\
 5. Leis de escala & \inter & 1,5\\
 6. Sincronização e RTTs & \avancado & 2,0\\
-7. Dois gargalos & \avancado & 1,0\\
 \midrule
-8. Trilha de pesquisa & \pesquisa & bônus até 2,0\\
+7. Bônus e extras & \avancado & bônus\\
+8. Trilha de pesquisa & \pesquisa & bônus\\
 \bottomrule
 \end{tabular}
 \end{center}
-A nota final é limitada a 10. Em cada parte, metade da nota vem dos experimentos e
+Os bônus das Partes 7 e 8, somados, valem até 2,0 pontos, e a nota final é limitada a 10. Em cada parte, metade da nota vem dos experimentos e
 gráficos, e metade das respostas e da interpretação. Uma resposta que explica
 honestamente por que um experimento não deu certo vale mais do que um gráfico bonito
 sem explicação.
@@ -1132,7 +1166,7 @@ $x\parallel\ones$.
 estados imediatamente anteriores a perdas a MD leva a soma de $c$ para $\beta c$ e o AI
 devolve $(1-\beta)c/n=(1-\beta)x^\star_r$ a cada fluxo. O mapa por ciclo é
 $x'=\beta x+(1-\beta)x^\star$: o desvio $x-x^\star$ encolhe por $\beta$ a cada ciclo. Perto
-da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.4), logo
+da reta justa, $\mathcal U$ é quadrático no desvio transversal (Exercício 3.3), logo
 $\mathcal U_{m+1}/\mathcal U_m\to\beta^2$.
 
 \paragraph{Contabilidade da janela.} No Reno, entre reduções a janela cresce

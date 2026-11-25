@@ -1,6 +1,6 @@
 # ig_starter — código inicial do Trabalho de Redes (geometria da informação do AIMD)
 
-Código para as Partes 2, 4, 5 e 6 do enunciado. Testado no Ubuntu 24.04 com Python 3
+Código para as Partes 2, 4, 5 e 6 do enunciado (e para os bônus da Parte 7). Testado no Ubuntu 24.04 com Python 3
 (a VM Vagrant com Ubuntu 20.04 pode funcionar, mas não é testada).
 
 ## Instalação
@@ -32,9 +32,9 @@ sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
      --stagger 15 --duration 120 --qmon --out dados/p4/reno-n2-B100/rep1
 python3 plot_cwnd.py dados/p4/reno-n2-B100/rep1 -o p4-cwnd-reno-n2-B100.png
 
-# Parte 5: um fluxo CUBIC com 0,05% de perda aleatória no gargalo (--loss é em PORCENTO)
-sudo python3 dumbbell.py --n 1 --cc cubic --rtt-ms 100 --bw 50 --buffer 2000 \
-     --loss 0.05 --duration 300 --out dados/p5/cubic-p5e-4/rep1
+# Parte 5: um fluxo Reno com 0,05% de perda aleatória no gargalo (--loss é em PORCENTO)
+sudo python3 dumbbell.py --n 1 --cc reno --rtt-ms 100 --bw 50 --buffer 2000 \
+     --loss 0.05 --duration 300 --out dados/p5/reno-p5e-4/rep1
 
 # Parte 6: três fluxos Reno com RTTs 20/40/60 ms, RED no gargalo
 sudo python3 dumbbell.py --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 \
