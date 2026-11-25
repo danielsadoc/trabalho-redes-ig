@@ -19,7 +19,7 @@ sudo modprobe tcp_scalable           # para a Parte 5
 | `dumbbell.py` | topologia haltere com `n` emissores; RTT por fluxo; gargalo com taxa `C`, buffer `B`, RED ou perda aleatória; inicia os fluxos escalonados e os monitores; grava CSVs e `metadata.json` |
 | `cwnd_monitor.py` | amostra `ss -tin` dentro do host emissor (chamado pelo `dumbbell.py`) |
 | `ig_metrics.py` | injustiça `U`, ineficiência `I`, `D_IS`, leitura e alinhamento dos CSVs. **Dois TODOs fazem parte do trabalho**: `detect_backoffs` (Parte 4) e `sync_estimate` (bônus de sincronização) |
-| `plot_cwnd.py` | gráfico da cwnd por fluxo (e da fila, se houver `queue.csv`) |
+| `plot_cwnd.py` | gráfico da cwnd por fluxo, mais a fila (`--qmon`) e o RTT do ping (`--ping`) quando houver |
 | `run_p4.sh` | varredura de exemplo da Parte 4, com repetições e retomada |
 | `simula_aimd.py` | verificação numérica da teoria (Seção 3 do enunciado): identidade pitagórica, contração por β², expoentes binomiais, interpolação por sincronização parcial; `--skip-interpolation` pula a parte mais lenta |
 | `simula_cubic.py` | expoente 4/3 do CUBIC sob perda periódica |
