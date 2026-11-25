@@ -1,6 +1,6 @@
 # ig_starter — código inicial do Trabalho de Redes (geometria da informação do AIMD)
 
-Código para as Partes 2, 4, 5 e 6 do enunciado (e para os bônus da Parte 7). Testado no Ubuntu 24.04 com Python 3
+Código para as Partes 2, 4 e 5 do enunciado e para os bônus da Parte 6. Testado no Ubuntu 24.04 com Python 3
 (a VM Vagrant com Ubuntu 20.04 pode funcionar, mas não é testada).
 
 ## Instalação
@@ -18,7 +18,7 @@ sudo modprobe tcp_scalable           # para a Parte 5
 |---|---|
 | `dumbbell.py` | topologia haltere com `n` emissores; RTT por fluxo; gargalo com taxa `C`, buffer `B`, RED ou perda aleatória; inicia os fluxos escalonados e os monitores; grava CSVs e `metadata.json` |
 | `cwnd_monitor.py` | amostra `ss -tin` dentro do host emissor (chamado pelo `dumbbell.py`) |
-| `ig_metrics.py` | injustiça `U`, ineficiência `I`, `D_IS`, leitura e alinhamento dos CSVs. **Dois TODOs fazem parte do trabalho**: `detect_backoffs` (Parte 4) e `sync_estimate` (Parte 6) |
+| `ig_metrics.py` | injustiça `U`, ineficiência `I`, `D_IS`, leitura e alinhamento dos CSVs. **Dois TODOs fazem parte do trabalho**: `detect_backoffs` (Parte 4) e `sync_estimate` (bônus de sincronização) |
 | `plot_cwnd.py` | gráfico da cwnd por fluxo (e da fila, se houver `queue.csv`) |
 | `run_p4.sh` | varredura de exemplo da Parte 4, com repetições e retomada |
 | `simula_aimd.py` | verificação numérica da teoria (Seção 3 do enunciado): identidade pitagórica, contração por β², expoentes binomiais, interpolação por sincronização parcial; `--skip-interpolation` pula a parte mais lenta |
@@ -27,6 +27,11 @@ sudo modprobe tcp_scalable           # para a Parte 5
 ## Uso
 
 ```bash
+# Parte 2: um fluxo Reno, buffer de 100 pacotes; grafico com janela, fila e RTT
+sudo python3 dumbbell.py --n 1 --cc reno --rtt-ms 20 --bw 1.5 --buffer 100 \
+     --duration 200 --qmon --ping --out dados/p2/q100
+python3 plot_cwnd.py dados/p2/q100 -o p2-q100.png
+
 # Parte 4: dois fluxos Reno, RTT 40 ms, 10 Mb/s, buffer de 100 pacotes, inícios a cada 15 s
 sudo python3 dumbbell.py --n 2 --cc reno --rtt-ms 40 --bw 10 --buffer 100 \
      --stagger 15 --duration 120 --qmon --out dados/p4/reno-n2-B100/rep1
@@ -36,7 +41,7 @@ python3 plot_cwnd.py dados/p4/reno-n2-B100/rep1 -o p4-cwnd-reno-n2-B100.png
 sudo python3 dumbbell.py --n 1 --cc reno --rtt-ms 100 --bw 50 --buffer 2000 \
      --loss 0.05 --duration 300 --out dados/p5/reno-p5e-4/rep1
 
-# Parte 6: três fluxos Reno com RTTs 20/40/60 ms, RED no gargalo
+# Bônus de sincronização: três fluxos Reno com RTTs 20/40/60 ms, RED no gargalo
 sudo python3 dumbbell.py --n 3 --cc reno --rtt-ms 20,40,60 --bw 10 --buffer 100 \
      --red --duration 200 --out dados/p6/red-B100/rep1
 
