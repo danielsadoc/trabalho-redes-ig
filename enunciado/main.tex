@@ -506,6 +506,36 @@ rodada tem 200\,s.
 
 \paragraph{Gráficos obrigatórios:} \path{p2-q100.png} e \path{p2-q20.png}.
 
+\begin{caixa}[title=Erros comuns em semestres anteriores,breakable]{ceff}
+As turmas de 2024/2 e 2025/1 fizeram uma versão anterior desta parte, e os mesmos
+tropeços se repetiram em vários relatórios. Evitem:
+\begin{itemize}
+\item \textbf{Números impossíveis, sem comentário.} Com $C=1{,}5$\,Mb/s, cada pacote de
+1500 bytes na fila acrescenta 8\,ms ao RTT. O RTT do ping fica, portanto, entre 20\,ms e
+cerca de $20+8q$\,ms: até uns 180\,ms com $q=20$ e uns 820\,ms com $q=100$. Houve
+relatórios com RTT “raramente acima de 30\,ms” com $q=20$, ou acima de 1\,s com
+$q=100$, sem nenhuma discussão. Façam essa conta antes de rodar: se o dado sair da
+faixa, o erro está na configuração.
+\item \textbf{Vazão total maior que a capacidade}, ou muito menor sem explicação. A soma
+das vazões não passa de $C$; se ficar muito abaixo, verifiquem a CPU da VM
+(Seção~\ref{sec:repro}).
+\item \textbf{Rótulos trocados.} Chamar $q=20$ de “buffer grande”, ou trocar os arquivos
+de $q=20$ e $q=100$. Confiram: o máximo do gráfico da fila tem de bater com $q$.
+\item \textbf{Conclusão tirada de uma rodada só.} Grupos diferentes chegaram a conclusões
+opostas sobre qual buffer era melhor, em geral com uma única rodada e poucas amostras.
+Uma diferença só conta se for maior que a variação entre repetições.
+\item \textbf{Explicação que não usa os próprios dados.} Parágrafos genéricos, que
+serviriam para qualquer relatório e às vezes contradiziam a tabela logo acima. Cada
+explicação deve citar um número que vocês mediram.
+\item \textbf{Mecanismo errado.} O Reno reduz a janela quando detecta \emph{perda} (ou
+marca ECN), não quando o RTT aumenta. O RTT alto é consequência da fila cheia, não o
+sinal que o Reno usa.
+\item \textbf{Código inacessível.} Cerca de metade dos grupos não deixou link para o
+código, ou deixou um link quebrado. Ponham o link do repositório na primeira página do
+relatório e testem.
+\end{itemize}
+\end{caixa}
+
 \subsection*{Perguntas da Parte 2}
 \begin{enumerate}[label=2.\arabic*]
 \item Leia a classe da topologia no \texttt{dumbbell.py} e os comandos \texttt{tc}
